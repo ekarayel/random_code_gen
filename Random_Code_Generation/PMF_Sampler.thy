@@ -1,9 +1,9 @@
 theory PMF_Sampler
-  imports Main 
-    "HOL-Probability.Probability" 
+  imports Main
+    "HOL-Probability.Probability"
     "HOL-Library.Code_Lazy"
-    "Zeta_Function.Zeta_Library" 
-    (* The last import is to pull set_nn_integral_cong which should be in 
+    "Zeta_Function.Zeta_Library"
+    (* The last import is to pull set_nn_integral_cong which should be in
     HOL-Analysis.Set_Integral. *)
 begin
 
@@ -51,7 +51,7 @@ interpretation coin_space: prob_space coin_space
   by (intro prob_space.prob_space_stream_space prob_space_measure_pmf)
 
 definition options :: "'a set \<Rightarrow> 'a option set" where
-  "options X = insert None (Some ` X)" 
+  "options X = insert None (Some ` X)"
 
 lemma None_in_options [simp]: "None \<in> options X"
   by (auto simp: options_def)
@@ -107,7 +107,7 @@ qed auto
 lemma wf_pmfsrI:
   assumes "\<And>bs bs' x n. r bs = Some (x, n) \<Longrightarrow> stake n bs' = stake n bs \<Longrightarrow> r bs' = Some (x, n)"
   shows "wf_pmfsr r"
-  unfolding wf_pmfsr_def 
+  unfolding wf_pmfsr_def
 proof
   fix bs :: "bool stream"
   show "case r bs of None \<Rightarrow> True
@@ -118,7 +118,7 @@ proof
       using assms[of bs "fst xn" "snd xn"] by auto
   qed auto
 qed
-    
+
 
 lemma wf_pmfsrD:
   assumes "wf_pmfsr r" "r bs = Some (x, n)" "stake n bs' = stake n bs"
@@ -307,7 +307,7 @@ lemma bind_return_pmfsr: "bind_pmfsr (return_pmfsr x) r = r x"
 
 lemma bind_assoc_pmfsr: "(A :: 'a pmfsr) \<bind> B \<bind> C = A \<bind> (\<lambda>x. B x \<bind> C)"
   by (auto simp: fun_eq_iff bind_pmfsr_def return_pmfsr_def Option_bind_conv_case
-           split: option.splits)  
+           split: option.splits)
 
 lemma bind_pmfsr_cong:
   "p = q \<Longrightarrow> (\<And>x. x \<in> range_pmfsr q \<Longrightarrow> f x = g x) \<Longrightarrow> bind_pmfsr p f = bind_pmfsr q g"
@@ -422,7 +422,7 @@ next
   thus "f x \<in> range_pmfsr (map_pmfsr f r)"
     by (intro in_range_pmfsrI[of _ bs _ n]) (auto simp: map_pmfsr_def)
 qed
-  
+
 
 lemma wf_bind_pmfsr:
   assumes "wf_pmfsr r"
@@ -434,7 +434,7 @@ proof -
   have "countable A" unfolding A_def using assms
     by (intro countable_subset [OF range_bind_pmfsr_subset] countable_UN countable_range_pmfsr)
        (use assms in \<open>auto simp: wf_pmfsr_def\<close>)
-  
+
   show ?thesis
   proof (rule wf_pmfsrI)
     fix bs bs' :: "bool stream" and x :: 'b and n :: nat
@@ -467,7 +467,7 @@ lemma wf_map_pmfsr:
   using assms unfolding map_pmfsr_conv_bind_pmfsr
   by (intro wf_bind_pmfsr wf_return_pmfsr)
 
-lemma (in prob_space) distr_stream_space_snth [simp]: 
+lemma (in prob_space) distr_stream_space_snth [simp]:
   assumes "sets M = sets N"
   shows   "distr (stream_space M) N (\<lambda>xs. snth xs n) = M"
 proof -
@@ -480,7 +480,7 @@ proof -
   finally show ?thesis .
 qed
 
-lemma (in prob_space) distr_stream_space_shd [simp]: 
+lemma (in prob_space) distr_stream_space_shd [simp]:
   assumes "sets M = sets N"
   shows   "distr (stream_space M) N shd = M"
   using distr_stream_space_snth[OF assms, of 0] by (simp del: distr_stream_space_snth)
@@ -518,7 +518,7 @@ qed
 
 lemma bool_list_set:
   "card {xs :: bool list. length xs = k} = 2^k"
-  "{xs :: bool list. length xs = k} \<noteq> {}" 
+  "{xs :: bool list. length xs = k} \<noteq> {}"
   "finite {xs :: bool list. length xs = k}"
 proof -
   have "card {xs :: bool list. length xs = k} = card {xs. set xs \<subseteq> (UNIV::bool set)\<and>length xs = k}"
@@ -533,7 +533,7 @@ proof -
 qed
 
 lemma split_coin_space:
-  "distr (pmf_of_set {xs. length xs = k} \<Otimes>\<^sub>M coin_space) coin_space (\<lambda>(x,y). x@-y) = coin_space" 
+  "distr (pmf_of_set {xs. length xs = k} \<Otimes>\<^sub>M coin_space) coin_space (\<lambda>(x,y). x@-y) = coin_space"
   (is "?L = ?R")
 proof (rule measure_eqI)
   show "sets ?L = sets ?R" by simp
@@ -543,13 +543,13 @@ next
   hence a:"A \<in> sets coin_space"
     by simp
 
-  have 0: "(\<lambda>(x, y). x @- y) \<in> pmf_of_set {xs. length xs = k} \<Otimes>\<^sub>M coin_space \<rightarrow>\<^sub>M coin_space" 
+  have 0: "(\<lambda>(x, y). x @- y) \<in> pmf_of_set {xs. length xs = k} \<Otimes>\<^sub>M coin_space \<rightarrow>\<^sub>M coin_space"
     using append_measurable by measurable
 
   have 1:"{bs. x @- bs \<in> A} \<in> sets coin_space" for x
     using a append_measurable unfolding measurable_def space_coin_space vimage_def by simp
 
-  have "{x. fst x @- snd x \<in> A} = 
+  have "{x. fst x @- snd x \<in> A} =
     (\<lambda>(x, y). x @- y) -` A \<inter> space (pmf_of_set {xs. length xs = k} \<Otimes>\<^sub>M coin_space)"
     unfolding space_pair_measure by (simp add:space_coin_space vimage_def case_prod_beta)
   also have "... \<in> sets (pmf_of_set {xs. length xs = k} \<Otimes>\<^sub>M coin_space)"
@@ -558,14 +558,14 @@ next
     by simp
 
   have "emeasure ?L A = emeasure (pmf_of_set {xs. length xs = k} \<Otimes>\<^sub>M coin_space){x. fst x@-snd x\<in>A}"
-    using 0 a by (subst emeasure_distr) 
+    using 0 a by (subst emeasure_distr)
       (simp_all add:space_pair_measure space_coin_space vimage_def case_prod_beta)
-  also have "... =  
+  also have "... =
     \<integral>\<^sup>+ x. emeasure coin_space (Pair x -` {x. fst x @- snd x \<in> A}) \<partial>pmf_of_set {xs. length xs = k}"
     using 2 by (intro coin_space.emeasure_pair_measure_alt)
   also have "... = \<integral>\<^sup>+ x. emeasure coin_space {bs. x @- bs \<in> A} \<partial>pmf_of_set {xs. length xs = k}"
     unfolding vimage_def by simp
-  also have "... = (\<Sum>x\<in>set_pmf (pmf_of_set {xs. length xs = k}). 
+  also have "... = (\<Sum>x\<in>set_pmf (pmf_of_set {xs. length xs = k}).
     emeasure coin_space {bs. x @- bs \<in> A} * ennreal (pmf (pmf_of_set {xs. length xs = k}) x))"
     using bool_list_set by (intro nn_integral_measure_pmf_finite) (simp_all)
   also have "... = (\<Sum>xs| length xs = k. emeasure coin_space {bs. xs @- bs \<in> A} * ennreal (1/2^k))"
@@ -582,23 +582,23 @@ next
     hence "(\<Sum>xs | length xs = Suc k. emeasure coin_space {bs. xs @- bs \<in> A}* ennreal (1/2^Suc k))=
       (\<Sum>x|length (fst x)=k. emeasure coin_space {bs. (fst x@[snd x])@-bs\<in>A}*ennreal (1/2^Suc k))"
       by (intro sum.reindex_bij_betw[symmetric] bij_betwI[where g="(\<lambda>x. (take k x, x!k))"]) auto
-    also have "... = (\<Sum>xs | length xs = k. 
+    also have "... = (\<Sum>xs | length xs = k.
       (\<Sum>x\<in>UNIV. emeasure coin_space {bs. (xs@[x]) @- bs \<in> A} * ennreal ((1/2) * (1/2^k))))"
       unfolding sum.cartesian_product by (intro sum.cong) auto
-    also have "... = (\<Sum>xs | length xs = k. 
+    also have "... = (\<Sum>xs | length xs = k.
       (\<Sum>x\<in>UNIV. emeasure coin_space {bs. (xs@[x]) @- bs \<in> A}) * inverse 2 * ennreal (1/2^k))"
       by (subst ennreal_mult') (simp_all add:sum_distrib_right sum_distrib_left algebra_simps)
-    also have "... = (\<Sum>xs | length xs = k. 
+    also have "... = (\<Sum>xs | length xs = k.
       (\<Sum>x\<in>UNIV. emeasure coin_space {xa. xs @- x ## xa \<in> A}) * inverse 2 * ennreal (1 / 2 ^ k))"
       by (intro sum.cong arg_cong2[where f="(*)"] refl arg_cong2[where f="emeasure"]) simp_all
-    also have "... = (\<Sum>xs | length xs = k. 
+    also have "... = (\<Sum>xs | length xs = k.
       (\<integral>\<^sup>+ t. emeasure coin_space {x. xs @- t ## x \<in> A} \<partial>pmf_of_set UNIV) * ennreal (1 / 2 ^ k))"
       by (subst nn_integral_measure_pmf_finite) (simp_all add:sum_distrib_right)
     also have "... = (\<Sum>xs | length xs = k. (\<integral>\<^sup>+ t. emeasure coin_space {x \<in> space coin_space.
           t ## x \<in> {bs. xs @- bs \<in> A}} \<partial>pmf_of_set UNIV) * ennreal (1 / 2 ^ k))"
       unfolding space_coin_space by simp
     also have "... = (\<Sum>xs|length xs=k. emeasure coin_space {bs. xs @- bs \<in> A} * ennreal (1/2^k))"
-      using 1 unfolding coin_space_def by (intro sum.cong arg_cong2[where f="(*)"] 
+      using 1 unfolding coin_space_def by (intro sum.cong arg_cong2[where f="(*)"]
           prob_space.emeasure_stream_space[symmetric] prob_space_measure_pmf refl) auto
     also have "... = emeasure ?R A"
       by (intro Suc)
@@ -619,19 +619,19 @@ proof -
     by (auto simp add:set_eq_iff comp_def)
   also have "... \<in> sets (?R \<Otimes>\<^sub>M coin_space)"
     using append_measurable 1 by (intro measurable_sets[where A="discrete"]) auto
-  finally have 2: "{x \<in> space (?R \<Otimes>\<^sub>M coin_space). (stake n \<circ> (\<lambda>(x, y). x @- y)) x = fst x} \<in> 
+  finally have 2: "{x \<in> space (?R \<Otimes>\<^sub>M coin_space). (stake n \<circ> (\<lambda>(x, y). x @- y)) x = fst x} \<in>
     sets (?R \<Otimes>\<^sub>M coin_space)"
     by simp
 
   have 0: "AE x in ?R \<Otimes>\<^sub>M coin_space. (stake n \<circ> (\<lambda>(x, y). x @- y)) x = fst x"
     using  coin_space.sigma_finite_measure bool_list_set
     by (intro pair_sigma_finite.AE_pair_measure AE_pmfI 2 AE_I2)
-     (simp_all add:pair_sigma_finite_def measure_pmf.sigma_finite_measure_axioms)  
+     (simp_all add:pair_sigma_finite_def measure_pmf.sigma_finite_measure_axioms)
 
   have "?L = distr (distr (?R  \<Otimes>\<^sub>M coin_space) coin_space (\<lambda>(x,y). x@-y)) discrete (stake n)"
     by (subst split_coin_space)  simp
   also have "... = distr (?R \<Otimes>\<^sub>M coin_space) discrete (stake n \<circ> (\<lambda>(x, y). x @- y))"
-    using append_measurable 1 by (intro distr_distr) simp_all 
+    using append_measurable 1 by (intro distr_distr) simp_all
   also have "... = distr (?R \<Otimes>\<^sub>M coin_space) discrete fst"
     using append_measurable 0 1
     by (intro distr_cong_AE refl measurable_comp[where N="coin_space"]) simp_all
@@ -650,7 +650,7 @@ lemma map_prod_measurable[measurable]:
   using assms by (subst measurable_pair_iff) simp
 
 
-lemma (in sigma_finite_measure) restrict_space_pair_lift: 
+lemma (in sigma_finite_measure) restrict_space_pair_lift:
   assumes "A' \<in> sets A"
   shows "restrict_space A A' \<Otimes>\<^sub>M M = restrict_space (A \<Otimes>\<^sub>M M) (A' \<times> space M)" (is "?L = ?R")
 proof -
@@ -663,7 +663,7 @@ proof -
     fix x assume "x \<in> {a \<times> b |a b. a \<in> sets A \<and> b \<in> sets M}"
     then obtain u v where uv_def: "x = u \<times> v" "u \<in> sets A" "v \<in> sets M"
       by auto
-    have 8:"u \<inter> A' \<in> sets (restrict_space A A')" 
+    have 8:"u \<inter> A' \<in> sets (restrict_space A A')"
       using uv_def(2) unfolding sets_restrict_space by auto
     have "v \<subseteq> space M"
       using uv_def(3) sets.sets_into_space by auto
@@ -687,7 +687,7 @@ proof -
     moreover have "u \<in> sets A" using uv_def(2) assms unfolding sets_restrict_space by blast
     hence "x \<in> {a \<times> b |a b. a \<in> sets A \<and> b \<in> sets M}"
       unfolding uv_def(1) using uv_def(3) by auto
-    ultimately show "x \<in> ?X" 
+    ultimately show "x \<in> ?X"
       by simp
   qed
   ultimately have 1: "?X = {a \<times> b |a b. a \<in> sets (restrict_space A A') \<and> b \<in> sets M}" by simp
@@ -709,22 +709,22 @@ proof -
     hence 5: "emeasure M (Pair x -` S) = 0" if "x \<notin> A'" "x \<in> space A" for x
       using that by auto
     have "?L1 = (\<integral>\<^sup>+ x. emeasure M (Pair x -` S) \<partial>restrict_space A A')"
-      by (intro emeasure_pair_measure_alt[OF that]) 
+      by (intro emeasure_pair_measure_alt[OF that])
     also have "... = (\<integral>\<^sup>+x\<in>A'. emeasure M (Pair x -` S) \<partial>A)"
       using assms by (intro nn_integral_restrict_space) auto
     also have "... = (\<integral>\<^sup>+x. emeasure M (Pair x -` S) \<partial>A)"
       using 5 by (intro nn_integral_cong) force
     also have "... = emeasure (A \<Otimes>\<^sub>M M) S"
-      using that assms by (intro emeasure_pair_measure_alt[symmetric]) 
-        (auto simp add:2[symmetric] sets_restrict_space) 
+      using that assms by (intro emeasure_pair_measure_alt[symmetric])
+        (auto simp add:2[symmetric] sets_restrict_space)
     also have "... = ?R1"
-      using assms that by (intro emeasure_restrict_space[symmetric]) 
+      using assms that by (intro emeasure_restrict_space[symmetric])
         (auto simp add:2[symmetric] sets_restrict_space)
     finally show ?thesis by simp
   qed
 
   show ?thesis using 2 3
-    by (intro measure_eqI) auto 
+    by (intro measure_eqI) auto
 qed
 
 lemma measure_pmfsr_subprob_space:
@@ -737,12 +737,9 @@ proof -
   moreover have "sets (measure_pmfsr p) = discrete"
     unfolding measure_pmfsr_def by simp
   ultimately show ?thesis
-    unfolding space_subprob_algebra using prob_space_imp_subprob_space 
+    unfolding space_subprob_algebra using prob_space_imp_subprob_space
     by auto
 qed
-
-abbreviation none_measure :: "'b option measure" 
-  where "none_measure \<equiv> return discrete None" 
 
 context
   fixes m :: "'a pmfsr"
@@ -759,16 +756,16 @@ the @{term "restrict_space coin_space {bs. m bs \<noteq> None}"}.\<close>
 private definition \<mu> where "\<mu> bs = (the (m bs), sdrop (snd (the (m bs))) bs)"
 
 lemma none_measure_subprob_algebra:
-  "none_measure \<in> space (subprob_algebra discrete)"
+  "return discrete None \<in> space (subprob_algebra discrete)"
   by (metis measure_subprob return_pmf.rep_eq)
 
 lemma measure_bind_pmfsr_helper_2:
-  shows 
+  shows
     "\<mu> \<in> R \<rightarrow>\<^sub>M (discrete \<Otimes>\<^sub>M coin_space)"
     "(\<lambda>x. the (m x)) \<in> R \<rightarrow>\<^sub>M discrete" "the \<circ> m  \<in> R \<rightarrow>\<^sub>M discrete"
-    "distr R (discrete \<Otimes>\<^sub>M coin_space) \<mu> = distr R discrete (the \<circ> m) \<Otimes>\<^sub>M coin_space" 
+    "distr R (discrete \<Otimes>\<^sub>M coin_space) \<mu> = distr R discrete (the \<circ> m) \<Otimes>\<^sub>M coin_space"
     (is "?L = ?R")
-proof - 
+proof -
   have [measurable]: "sdrop i \<in> R \<rightarrow>\<^sub>M coin_space" for i
     unfolding R_def coin_space_def
     by (intro measurable_restrict_space1 measurable_sdrop)
@@ -786,13 +783,13 @@ proof -
   thus "the \<circ> m  \<in> R \<rightarrow>\<^sub>M discrete"
     unfolding comp_def by simp
 
-  have 4:"{bs. m bs \<noteq> None} \<inter> space coin_space \<in> coin_space.events" 
+  have 4:"{bs. m bs \<noteq> None} \<inter> space coin_space \<in> coin_space.events"
     using measurable_pmfsr[OF wf_m] by measurable
 
-  show 2: "\<mu> \<in> R \<rightarrow>\<^sub>M (discrete \<Otimes>\<^sub>M coin_space)" 
-    unfolding \<mu>_def by (intro measurable_Pair 0 1) 
+  show 2: "\<mu> \<in> R \<rightarrow>\<^sub>M (discrete \<Otimes>\<^sub>M coin_space)"
+    unfolding \<mu>_def by (intro measurable_Pair 0 1)
 
-  define B :: "nat \<Rightarrow> (('a \<times> nat) \<times> bool stream) set" 
+  define B :: "nat \<Rightarrow> (('a \<times> nat) \<times> bool stream) set"
     where "B k = {(x,bs). snd x = k}" for k :: nat
 
   have B_sets: "B k \<in> sets (discrete \<Otimes>\<^sub>M coin_space)" for k
@@ -800,7 +797,7 @@ proof -
     have "B k = (snd -` {k}) \<times> space coin_space"
       unfolding B_def vimage_def space_coin_space by auto
     also have "... \<in> sets (discrete \<Otimes>\<^sub>M coin_space)"
-      by (intro pair_measureI) auto 
+      by (intro pair_measureI) auto
     finally show ?thesis by simp
   qed
 
@@ -808,7 +805,7 @@ proof -
   proof -
     let ?S = "(measure_pmf (pmf_of_set {xs. length xs = k}) \<Otimes>\<^sub>M coin_space)"
 
-    have "{bs. (the (m bs), sdrop k bs) \<in> A \<and> (m bs \<noteq> None)} = 
+    have "{bs. (the (m bs), sdrop k bs) \<in> A \<and> (m bs \<noteq> None)} =
       ((\<lambda>bs. (the (m bs), sdrop k bs)) -` A \<inter> space R)"
       unfolding R_def by (simp add: vimage_def space_restrict_space Int_def space_coin_space)
     also have "... \<in> sets R"
@@ -821,12 +818,12 @@ proof -
 
     have "{x. (the (m (fst x@-snd x)), sdrop k (fst x@-snd x)) \<in> A \<and> m (fst x @- snd x) \<noteq> None} =
       (\<lambda>x. fst x@-snd x) -` {bs. (the (m bs), sdrop k bs) \<in> A \<and> (m bs \<noteq> None)} \<inter> space ?S"
-      unfolding space_pair_measure space_coin_space by simp      
+      unfolding space_pair_measure space_coin_space by simp
     also have "... \<in> sets ?S"
       using append_measurable
       by (intro measurable_sets[where A="coin_space"] 5) simp
-    finally have 6: 
-      "{x. (the (m (fst x@-snd x)), sdrop k (fst x@-snd x)) \<in> A \<and> m (fst x @- snd x) \<noteq> None} 
+    finally have 6:
+      "{x. (the (m (fst x@-snd x)), sdrop k (fst x@-snd x)) \<in> A \<and> m (fst x @- snd x) \<noteq> None}
       \<in> sets ?S"
       by simp
 
@@ -842,7 +839,7 @@ proof -
 
     have "(the (m (stake k x @- bs)), bs) \<in> A \<and> m (stake k x @- bs) \<noteq> None \<longleftrightarrow>
       (the (m x), bs) \<in> A \<and> m x \<noteq> None" (is "?L1 = ?R1") for x bs
-    proof 
+    proof
       have a9: "stake k (stake k x @- bs) = stake k x" by simp
       assume ?L1
       thus ?R1 using 9[OF _ a9, of "bs"] by simp
@@ -852,38 +849,38 @@ proof -
       thus ?L1 using 9[OF _ a9, of "bs"] by simp
     qed
 
-    hence 7: "{bs. (the (m (stake k x @- bs)), bs) \<in> A \<and> m (stake k x @- bs) \<noteq> None} = 
+    hence 7: "{bs. (the (m (stake k x @- bs)), bs) \<in> A \<and> m (stake k x @- bs) \<noteq> None} =
       {bs. (the (m x), bs) \<in> A \<and> m x \<noteq> None}"  for x
       by simp
 
     have "emeasure ?L A = emeasure R (\<mu> -` A \<inter> space R)"
-      using that by (intro emeasure_distr 2) auto 
+      using that by (intro emeasure_distr 2) auto
     also have "... = emeasure R {bs. (the (m bs), sdrop (snd (the (m bs))) bs) \<in> A \<and> m bs \<noteq> None}"
-      unfolding \<mu>_def R_def 
+      unfolding \<mu>_def R_def
       by (simp add:space_restrict_space space_coin_space vimage_def Int_def)
     also have "... = emeasure R {bs. (the (m bs), sdrop k bs)\<in>A \<and> m bs \<noteq> None}"
       using that(2) unfolding B_def by (intro arg_cong2[where f="emeasure"] refl) auto
-    also have "... = 
+    also have "... =
       emeasure coin_space {bs. (the (m bs), sdrop k bs)\<in>A \<and> m bs \<noteq> None}"
-      using 4 unfolding R_def by (intro emeasure_restrict_space subsetI) simp_all 
-    also have "... = 
+      using 4 unfolding R_def by (intro emeasure_restrict_space subsetI) simp_all
+    also have "... =
       emeasure (distr ((pmf_of_set {xs. length xs = k}) \<Otimes>\<^sub>M coin_space) coin_space (\<lambda>(x, y). x@-y))
         {bs. (the (m bs), sdrop k bs) \<in> A \<and> m bs \<noteq> None}"
       by (subst split_coin_space[symmetric, of k]) simp
     also have "... = emeasure (pmf_of_set {xs. length xs = k} \<Otimes>\<^sub>M coin_space)
       {x. (the (m (fst x @- snd x)), sdrop k (fst x @- snd x)) \<in> A \<and> m (fst x @- snd x) \<noteq> None}"
-      using append_measurable 5 by (subst emeasure_distr) 
-        (simp_all add:space_pair_measure space_coin_space vimage_def case_prod_beta) 
-    also have "... = \<integral>\<^sup>+ x. emeasure coin_space (Pair x -` {x. (the (m (fst x@-snd x)), 
+      using append_measurable 5 by (subst emeasure_distr)
+        (simp_all add:space_pair_measure space_coin_space vimage_def case_prod_beta)
+    also have "... = \<integral>\<^sup>+ x. emeasure coin_space (Pair x -` {x. (the (m (fst x@-snd x)),
         sdrop k (fst x @- snd x))\<in>A \<and> m (fst x@-snd x)\<noteq>None}) \<partial>(pmf_of_set {xs. length xs = k})"
       by (intro coin_space.emeasure_pair_measure_alt 6)
-    also have "... = \<integral>\<^sup>+ x. emeasure coin_space 
+    also have "... = \<integral>\<^sup>+ x. emeasure coin_space
       {bs. (the (m (x@-bs)), sdrop k (x@-bs)) \<in> A \<and> m (x@-bs) \<noteq> None} \<partial>pmf_of_set{xs. length xs=k}"
       unfolding vimage_def by simp
-    also have "... = \<integral>\<^sup>+ x. emeasure coin_space {bs. (the (m (x@-bs)), bs) \<in> A \<and> m (x@-bs) \<noteq> None} 
+    also have "... = \<integral>\<^sup>+ x. emeasure coin_space {bs. (the (m (x@-bs)), bs) \<in> A \<and> m (x@-bs) \<noteq> None}
       \<partial>pmf_of_set{xs. length xs=k}"
       using bool_list_set by (intro nn_integral_cong_AE AE_pmfI) auto
-    also have "... = \<integral>\<^sup>+ x. emeasure coin_space 
+    also have "... = \<integral>\<^sup>+ x. emeasure coin_space
       {bs. (the (m (stake k x @- bs)), bs) \<in> A \<and> m (stake k x @- bs) \<noteq> None} \<partial>coin_space"
       unfolding distr_stake[symmetric] coin_space_def by (intro nn_integral_distr) auto
     also have "... = \<integral>\<^sup>+ x. emeasure coin_space {bs. (the (m x), bs) \<in> A \<and> m x \<noteq> None} \<partial>coin_space"
@@ -897,9 +894,9 @@ proof -
     also have "... = \<integral>\<^sup>+ x. emeasure coin_space (Pair x -` A) \<partial>distr R discrete (the \<circ> m)"
       using 1 by (intro nn_integral_distr[symmetric]) simp_all
     also have "... = emeasure ?R A"
-      using that by (intro sigma_finite_measure.emeasure_pair_measure_alt[symmetric] 
-          coin_space.sigma_finite_measure_axioms) (simp add:sets_pair_measure) 
-    finally show ?thesis 
+      using that by (intro sigma_finite_measure.emeasure_pair_measure_alt[symmetric]
+          coin_space.sigma_finite_measure_axioms) (simp add:sets_pair_measure)
+    finally show ?thesis
       by simp
   qed
 
@@ -916,7 +913,7 @@ proof -
       by (intro suminf_emeasure[symmetric] image_subsetI sets.Int) auto
     also have "... = (\<Sum>k. emeasure ?R (A' k))"
       unfolding A'_def using that B_sets
-      by (intro suminf_cong 3 sets.Int) auto 
+      by (intro suminf_cong 3 sets.Int) auto
     also have "... = emeasure ?R (\<Union>k. A' k)"
       using that B_sets df unfolding A'_def
       by (intro suminf_emeasure) auto
@@ -929,7 +926,7 @@ proof -
   moreover have "sets ?L = sets ?R"
     unfolding sets_distr sets_pair_measure by simp
 
-  ultimately show "?L = ?R" 
+  ultimately show "?L = ?R"
     by (intro measure_eqI) auto
 qed
 
@@ -942,8 +939,7 @@ qed
 *)
 
 lemma measure_bind_pmfsr_helper:
-  "distr R (discrete \<Otimes>\<^sub>M coin_space) (apfst fst \<circ> \<mu>) = 
-  distr R discrete (fst \<circ> the \<circ> m) \<Otimes>\<^sub>M coin_space" 
+  "distr R (discrete \<Otimes>\<^sub>M coin_space) (apfst fst\<circ>\<mu>) = distr R discrete (fst\<circ>the\<circ>m) \<Otimes>\<^sub>M coin_space"
   (is "?L = ?R")
 proof -
   let ?C = "coin_space"
@@ -959,15 +955,15 @@ proof -
     unfolding id_def by simp
   also have "... =  distr (distr (R \<Otimes>\<^sub>M ?C) (?D \<Otimes>\<^sub>M ?C) (apfst (the \<circ> m))) (?D \<Otimes>\<^sub>M ?C) (apfst fst)"
     using 0 coin_space.sigma_finite_measure
-    by (subst pair_measure_distr) (simp_all add:comp_def id_def map_prod_def apfst_def) 
+    by (subst pair_measure_distr) (simp_all add:comp_def id_def map_prod_def apfst_def)
   also have "... = distr (R \<Otimes>\<^sub>M ?C) (?D \<Otimes>\<^sub>M ?C) (apfst fst \<circ> apfst (the \<circ> m))"
-    using 0 unfolding apfst_def 
+    using 0 unfolding apfst_def
     by (intro distr_distr map_prod_measurable) (simp_all add:comp_def)
   also have "... = distr (R \<Otimes>\<^sub>M ?C) (?D \<Otimes>\<^sub>M ?C) ((\<lambda>(bs, bs'). (fst (the (m bs)), bs')))"
-    by (intro arg_cong2[where f="distr (R \<Otimes>\<^sub>M ?C)"] refl) 
+    by (intro arg_cong2[where f="distr (R \<Otimes>\<^sub>M ?C)"] refl)
       (simp add:apfst_def map_prod_def comp_def case_prod_beta')
   also have "... = distr R ?D (\<lambda>bs. (fst (the (m bs)))) \<Otimes>\<^sub>M distr ?C ?C (\<lambda>x. x)"
-    using coin_space.sigma_finite_measure 
+    using coin_space.sigma_finite_measure
     by (intro pair_measure_distr[symmetric] measurable_compose[OF 0]) simp_all
   also have "... = ?R"
     by (simp add:comp_def)
@@ -975,14 +971,14 @@ proof -
 qed
 
 lemma measure_bind_pmfsr:
-  "measure_pmfsr (bind_pmfsr m f) = measure_pmfsr m \<bind> 
-    (\<lambda>x. if x \<in> Some ` range_pmfsr m then measure_pmfsr (f (the x)) else none_measure)" 
+  "measure_pmfsr (bind_pmfsr m f) = measure_pmfsr m \<bind>
+    (\<lambda>x. if x \<in> Some ` range_pmfsr m then measure_pmfsr (f (the x)) else return discrete None)"
     (is "?L = ?R")
 proof (rule measure_eqI)
   have "sets ?L = UNIV"
     unfolding measure_pmfsr_def by simp
   also have "... = sets ?R"
-    unfolding measure_pmfsr_def by (subst sets_bind[where N="discrete"]) 
+    unfolding measure_pmfsr_def by (subst sets_bind[where N="discrete"])
       (simp_all add:option.case_distrib option.case_eq_if)
   finally show "sets ?L = sets ?R" by simp
 next
@@ -1020,110 +1016,107 @@ next
     unfolding vimage_def space_pair_measure space_coin_space by auto
   also have "... \<in> sets (?H \<Otimes>\<^sub>M coin_space)"
     using measurable_compose[OF measurable_pmfsr[OF wf_f], where L="discrete"]
-    by (intro measurable_sets[where A="discrete"] measurable_pair_measure_countable1 
+    by (intro measurable_sets[where A="discrete"] measurable_pair_measure_countable1
         countable_range_pmfsr[OF wf_m]) auto
   also have "... = sets (restrict_space discrete (range_pmfsr m) \<Otimes>\<^sub>M coin_space)"
     unfolding restrict_count_space inf_top_right by simp
   also have "... = sets (restrict_space (discrete \<Otimes>\<^sub>M coin_space) (range_pmfsr m \<times> space coin_space))"
     by (subst coin_space.restrict_space_pair_lift) auto
-  finally have "{(v, bs). map_option fst (f v bs) \<in> A \<and> v \<in> range_pmfsr m} \<in> 
+  finally have "{(v, bs). map_option fst (f v bs) \<in> A \<and> v \<in> range_pmfsr m} \<in>
     sets (restrict_space (discrete \<Otimes>\<^sub>M coin_space) (range_pmfsr m \<times> UNIV))"
     unfolding space_coin_space by simp
-  moreover have "range_pmfsr m \<times> space coin_space \<in> sets (discrete \<Otimes>\<^sub>M coin_space)" 
-    by (intro pair_measureI sets.top) auto 
+  moreover have "range_pmfsr m \<times> space coin_space \<in> sets (discrete \<Otimes>\<^sub>M coin_space)"
+    by (intro pair_measureI sets.top) auto
   ultimately have 2: "{(v, bs). map_option fst (f v bs) \<in> A \<and> v\<in>range_pmfsr m} \<in> sets (?D \<Otimes>\<^sub>M ?C)"
     by (subst (asm) sets_restrict_space_iff) (auto simp: space_coin_space)
 
   have space_R: "space R = {x. m x \<noteq> None}"
     unfolding R_def by (simp add:space_restrict_space space_coin_space)
 
-  have 3: "measure_pmfsr (f (the x)) \<in> space (subprob_algebra discrete)" 
-    if "x \<in> Some ` range_pmfsr m" for x 
+  have 3: "measure_pmfsr (f (the x)) \<in> space (subprob_algebra discrete)"
+    if "x \<in> Some ` range_pmfsr m" for x
     using measure_pmfsr_subprob_space wf_f that by fastforce
 
-  have "(\<lambda>x. emeasure (measure_pmfsr (f (fst (the (m x))))) A * indicator N x) = 
+  have "(\<lambda>x. emeasure (measure_pmfsr (f (fst (the (m x))))) A * indicator N x) =
     (\<lambda>x. emeasure (if m x \<noteq> None then measure_pmfsr (f (fst (the (m x)))) else null_measure discrete) A)"
     unfolding N_def by (intro ext) simp
   also have "... = (\<lambda>v. emeasure
-    (if v \<in> Some ` range_pmfsr m then ?m (f (the v)) else null_measure discrete) A) 
+    (if v \<in> Some ` range_pmfsr m then ?m (f (the v)) else null_measure discrete) A)
     \<circ> (map_option fst \<circ> m)"
-    unfolding comp_def range_pmfsr_def
-    apply (intro ext arg_cong2[where f="emeasure"] refl if_cong)
-    apply (auto simp add:vimage_def image_iff) (* TODO FIX *)
-    by metis
+    unfolding comp_def by (intro ext arg_cong2[where f="emeasure"] refl if_cong)
+      (auto intro:in_range_pmfsrI simp add:vimage_def image_iff)
   also have "... \<in> borel_measurable coin_space"
-    using 3 by (intro measurable_comp[where N="discrete"] 
+    using 3 by (intro measurable_comp[where N="discrete"]
         measurable_emeasure_kernel[where N="discrete"] measurable_pmfsr[OF wf_m]) simp_all
-  finally have 4:"(\<lambda>x. emeasure (measure_pmfsr (f (fst (the (m x))))) A * indicator N x) 
+  finally have 4:"(\<lambda>x. emeasure (measure_pmfsr (f (fst (the (m x))))) A * indicator N x)
     \<in> coin_space \<rightarrow>\<^sub>M borel" by simp
 
   let ?N = "emeasure ?C {bs. bs \<notin> N \<and> None \<in> A}"
 
   have "emeasure ?L A = emeasure ?C ((map_option fst \<circ> (m \<bind> f)) -` A)"
     unfolding measure_pmfsr_def using 0 by (subst emeasure_distr) (simp_all add:space_coin_space)
-  also have "... = 
+  also have "... =
     emeasure ?C ((map_option fst\<circ>(m\<bind>f))-`A \<inter> -N) + emeasure ?C ((map_option fst\<circ>(m\<bind>f))-`A \<inter> N)"
     using N_meas N_meas' 1
     by (subst emeasure_Un'[symmetric]) (simp_all add:Int_Un_distrib[symmetric])
-  also have "... = 
+  also have "... =
     emeasure ?C ((map_option fst\<circ>(m\<bind>f))-`A\<inter> -N) + emeasure R ((map_option fst\<circ>(m\<bind>f))-`A\<inter> N)"
     using N_meas unfolding R_def N_def
     by (intro arg_cong2[where f="(+)"] refl emeasure_restrict_space[symmetric]) simp_all
-  also have "... =?N + emeasure R ((apfst fst \<circ> \<mu>) -` 
+  also have "... =?N + emeasure R ((apfst fst \<circ> \<mu>) -`
     {(v, bs). map_option fst (f v bs) \<in> A \<and> v\<in> range_pmfsr m} \<inter> space R)"
     unfolding bind_pmfsr_def map_conv_bind_option N_def space_R apfst_def \<mu>_def
     by (intro arg_cong2[where f="(+)"] arg_cong2[where f="emeasure"])
-     (simp_all add: Option_bind_conv_case set_eq_iff in_range_pmfsrI split:option.split) 
-  also have "... = ?N + emeasure (distr R (?D\<Otimes>\<^sub>M?C) (apfst fst \<circ> \<mu>)) 
+     (simp_all add: Option_bind_conv_case set_eq_iff in_range_pmfsrI split:option.split)
+  also have "... = ?N + emeasure (distr R (?D\<Otimes>\<^sub>M?C) (apfst fst \<circ> \<mu>))
     {(v,bs). map_option fst (f v bs)\<in>A \<and> v\<in> range_pmfsr m}"
-    using 2 unfolding apfst_def by (intro arg_cong2[where f="(+)"] emeasure_distr[symmetric] 
+    using 2 unfolding apfst_def by (intro arg_cong2[where f="(+)"] emeasure_distr[symmetric]
          measurable_comp[OF measure_bind_pmfsr_helper_2(1)] map_prod_measurable) simp_all
   also have "... = ?N + emeasure (distr R ?D (fst \<circ> the \<circ> m) \<Otimes>\<^sub>M ?C)
     {(v,bs). map_option fst (f v bs) \<in> A \<and> v \<in> range_pmfsr m}"
     unfolding N_def measure_bind_pmfsr_helper by simp
-  also have "... =  ?N + \<integral>\<^sup>+ v. emeasure ?C 
+  also have "... =  ?N + \<integral>\<^sup>+ v. emeasure ?C
     {bs. map_option fst (f v bs) \<in> A \<and> v \<in> range_pmfsr m} \<partial>distr R ?D (fst \<circ> (the \<circ> m))"
     using 2 by (subst coin_space.emeasure_pair_measure_alt) (simp_all add:vimage_def comp_assoc)
-  also have "... =  ?N + \<integral>\<^sup>+ x. emeasure ?C 
+  also have "... =  ?N + \<integral>\<^sup>+ x. emeasure ?C
     {bs. map_option fst (f ((fst \<circ> (the \<circ> m)) x) bs) \<in> A \<and> (fst \<circ> (the \<circ> m)) x \<in> range_pmfsr m} \<partial>R"
-    by (intro arg_cong2[where f="(+)"] refl nn_integral_distr 
+    by (intro arg_cong2[where f="(+)"] refl nn_integral_distr
         measurable_comp[OF measure_bind_pmfsr_helper_2(3)]) simp_all
-  also have "... = ?N + (\<integral>\<^sup>+x\<in>{bs. m bs \<noteq> None}. emeasure ?C 
+  also have "... = ?N + (\<integral>\<^sup>+x\<in>{bs. m bs \<noteq> None}. emeasure ?C
     {bs. map_option fst (f (fst (the (m x))) bs) \<in> A \<and> fst (the (m x)) \<in> range_pmfsr m} \<partial>?C)"
     using N_meas unfolding R_def N_def using nn_integral_restrict_space
     by (subst nn_integral_restrict_space) simp_all
-  also have "... = ?N + (\<integral>\<^sup>+x\<in>{bs. m bs \<noteq> None}. 
+  also have "... = ?N + (\<integral>\<^sup>+x\<in>{bs. m bs \<noteq> None}.
     emeasure ?C ((map_option fst \<circ> f (fst (the (m x)))) -` A \<inter> space coin_space) \<partial>?C)"
     by (intro arg_cong2[where f="(+)"] set_nn_integral_cong refl arg_cong2[where f="emeasure"])
      (auto intro:in_range_pmfsrI simp:space_coin_space)
   also have "... = ?N + (\<integral>\<^sup>+x\<in>N. emeasure (measure_pmfsr(f(fst(the(m x))))) A \<partial>?C)"
-    unfolding measure_pmfsr_def N_def 
+    unfolding measure_pmfsr_def N_def
     by (intro arg_cong2[where f="(+)"] set_nn_integral_cong refl emeasure_distr[symmetric]
         measurable_comp[OF measurable_pmfsr[OF wf_f]]) (auto intro:in_range_pmfsrI)
   also have "... = (\<integral>\<^sup>+x. (indicator {bs. bs \<notin> N \<and> None \<in> A}) x  \<partial>?C) +
     (\<integral>\<^sup>+x\<in>N. emeasure (measure_pmfsr(f(fst(the(m x))))) A \<partial>?C)"
     using N_meas N_meas'
     by (intro arg_cong2[where f="(+)"] nn_integral_indicator[symmetric] refl)
-     (cases "None \<in> A"; auto simp:Collect_neg_eq) 
+     (cases "None \<in> A"; auto simp:Collect_neg_eq)
   also have "... = \<integral>\<^sup>+ x. indicator {bs. bs \<notin> N \<and> None \<in> A} x +
            emeasure (measure_pmfsr (f (fst (the (m x))))) A * indicator N x \<partial>?C"
-    using N_meas' N_meas by (intro nn_integral_add[symmetric] 4) simp 
-  also have "... =  \<integral>\<^sup>+ x. indicator (-N) x * indicator A None + 
+    using N_meas' N_meas by (intro nn_integral_add[symmetric] 4) simp
+  also have "... =  \<integral>\<^sup>+ x. indicator (-N) x * indicator A None +
     indicator N x * emeasure (measure_pmfsr (f (fst (the (m x))))) A \<partial>?C"
-    unfolding N_def by (intro arg_cong2[where f="nn_integral"] ext refl arg_cong2[where f="(+)"]) 
+    unfolding N_def by (intro arg_cong2[where f="nn_integral"] ext refl arg_cong2[where f="(+)"])
       (simp_all split:split_indicator)
-  also have "... =  
-    \<integral>\<^sup>+ x. emeasure (case m x of None \<Rightarrow> none_measure | Some x \<Rightarrow> measure_pmfsr (f (fst x))) A \<partial>?C"
-    unfolding N_def by (intro arg_cong2[where f="nn_integral"] ext) 
+  also have "... =
+    \<integral>\<^sup>+ x. emeasure (case m x of None \<Rightarrow> return discrete None | Some x \<Rightarrow> measure_pmfsr (f (fst x))) A \<partial>?C"
+    unfolding N_def by (intro arg_cong2[where f="nn_integral"] ext)
       (auto split:split_indicator option.split)
   also have "... = \<integral>\<^sup>+ x. emeasure (if (map_option fst \<circ> m) x \<in> Some ` range_pmfsr m
     then measure_pmfsr (f (the ((map_option fst \<circ> m) x)))
-    else none_measure) A \<partial>?C"
-    apply (intro arg_cong2[where f="nn_integral"] arg_cong2[where f="emeasure"] refl ext) 
-    apply (auto simp add:image_iff range_pmfsr_def vimage_def split:option.splits) 
-    by metis    (* FIX THIS *)
-  also have "... = 
-    \<integral>\<^sup>+ x. emeasure (if x \<in> Some ` range_pmfsr m then ?m (f (the x)) else none_measure) A \<partial>?m m"
+    else return discrete None) A \<partial>?C"
+    by (intro arg_cong2[where f="nn_integral"] arg_cong2[where f="emeasure"] refl ext)
+     (auto simp add: in_range_pmfsrI vimage_def split:option.splits)
+  also have "... =
+    \<integral>\<^sup>+ x. emeasure (if x \<in> Some ` range_pmfsr m then ?m (f (the x)) else return discrete None) A \<partial>?m m"
     unfolding measure_pmfsr_def using measurable_pmfsr[OF wf_m]
     by (intro nn_integral_distr[symmetric] measurable_comp[where N="discrete"]) simp_all
   also have "... = emeasure ?R A"
@@ -1196,7 +1189,7 @@ proof -
     by (intro measurable_comp[OF measurable_pmfsr] assms) auto
   ultimately show ?thesis
     using assms
-    by (auto simp: loss_pmfsr_def pmf.rep_eq spmf_of_pmfsr.rep_eq measure_pmfsr_def 
+    by (auto simp: loss_pmfsr_def pmf.rep_eq spmf_of_pmfsr.rep_eq measure_pmfsr_def
                    measure_distr space_coin_space)
 qed
 
@@ -1279,15 +1272,15 @@ proof -
   have 0: "wf_pmfsr (f (the x))" if "x \<in> Some ` range_pmfsr r" for x
     using assms(2) that by (cases x) auto
 
-  have 1: "none_measure = measure_pmf (return_pmf None)"
+  have 1: "return discrete None = measure_pmf (return_pmf None)"
     by (intro measure_eqI) auto
 
   have "measure_pmf ?L = measure_pmfsr (bind_pmfsr r f)"
     using assms wf_bind_pmfsr by (subst spmf_of_pmfsr.rep_eq) auto
-  also have "... =  measure_pmfsr r \<bind> (\<lambda>x. if x \<in> Some ` range_pmfsr r then 
-    measure_pmfsr (f (the x)) else none_measure)"
+  also have "... =  measure_pmfsr r \<bind> (\<lambda>x. if x \<in> Some ` range_pmfsr r then
+    measure_pmfsr (f (the x)) else return discrete None)"
     by (intro measure_bind_pmfsr[OF assms])
-  also have "... = measure_pmf (spmf_of_pmfsr r) \<bind> (\<lambda>x. if x \<in> Some ` range_pmfsr r then 
+  also have "... = measure_pmf (spmf_of_pmfsr r) \<bind> (\<lambda>x. if x \<in> Some ` range_pmfsr r then
     measure_pmf (spmf_of_pmfsr (f (the x))) else measure_pmf (return_pmf None))"
     using 0 assms(1) unfolding spmf_of_pmfsr.rep_eq 1 by (simp cong:if_cong)
   also have "... = measure_pmf (spmf_of_pmfsr r) \<bind> measure_pmf \<circ>
@@ -1296,22 +1289,22 @@ proof -
   also have "... = measure_pmf (spmf_of_pmfsr r \<bind>
       (\<lambda>x. if x \<in> Some ` range_pmfsr r then spmf_of_pmfsr (f (the x)) else return_pmf None))"
     by (subst bind_pmf.rep_eq[symmetric]) simp
-  also have "... = measure_pmf (spmf_of_pmfsr r \<bind> 
+  also have "... = measure_pmf (spmf_of_pmfsr r \<bind>
       (\<lambda>x. case x of None \<Rightarrow> return_pmf None | Some y \<Rightarrow> spmf_of_pmfsr (f y)))"
-    using subsetD[OF set_spmf_of_pmfsr[OF assms(1)]] 
-    by (intro arg_cong[where f="measure_pmf"] bind_pmf_cong refl) 
-      (auto simp: in_set_spmf split:option.split)  
+    using subsetD[OF set_spmf_of_pmfsr[OF assms(1)]]
+    by (intro arg_cong[where f="measure_pmf"] bind_pmf_cong refl)
+      (auto simp: in_set_spmf split:option.split)
   also have "... = measure_pmf ?R"
     unfolding bind_spmf_def case_option_def by simp
   finally have "measure_pmf ?L = measure_pmf ?R"
     by simp
-  thus ?thesis 
+  thus ?thesis
     using measure_pmf_inject by auto
 qed
 
 lemma loss_bind_pmfsr:
   assumes "wf_pmfsr r"
-  assumes "\<And>x. x \<in> range_pmfsr r \<Longrightarrow> wf_pmfsr (f x)" 
+  assumes "\<And>x. x \<in> range_pmfsr r \<Longrightarrow> wf_pmfsr (f x)"
   shows   "loss_pmfsr (bind_pmfsr r f) = loss_pmfsr r +
              (LINT x|measure_spmf (spmf_of_pmfsr r). loss_pmfsr (f x))"
 proof -
@@ -1340,7 +1333,7 @@ lemma spmf_of_map_pmfsr:
   assumes "wf_pmfsr r"
   shows   "spmf_of_pmfsr (map_pmfsr f r) = map_spmf f (spmf_of_pmfsr r)"
   using assms
-  by (simp add: map_pmfsr_conv_bind_pmfsr spmf_of_bind_pmfsr wf_return_pmfsr 
+  by (simp add: map_pmfsr_conv_bind_pmfsr spmf_of_bind_pmfsr wf_return_pmfsr
                 o_def map_spmf_conv_bind_spmf)
 
 lemma loss_map_pmfsr [simp]: "loss_pmfsr (map_pmfsr f r) = loss_pmfsr r"
@@ -1359,7 +1352,7 @@ definition ord_pmfsr :: "'a pmfsr \<Rightarrow> 'a pmfsr \<Rightarrow> bool" whe
 context fixes Y :: "'a pmfsr set" begin
 
 definition lub_pmfsr :: "'a pmfsr" where
-  "lub_pmfsr bs = 
+  "lub_pmfsr bs =
      (let X = {xn |xn r. r \<in> Y \<and> r bs = Some xn}
       in  if Set.is_singleton X then Some (the_elem X) else None)"
 
@@ -1420,7 +1413,7 @@ proof (rule wf_pmfsrI)
     thus "xn' = (x, n)"
       using \<open>r bs' = Some (x, n)\<close> r' by (cases "r' bs'") auto
   qed
-qed    
+qed
 
 
 lemma lub_pmfsr_empty [simp]: "lub_pmfsr {} = (\<lambda>_. None)"
@@ -1445,7 +1438,7 @@ proof
   qed
 qed
 
-lemma partial_function_definitions_pmfsr: 
+lemma partial_function_definitions_pmfsr:
   "partial_function_definitions ord_pmfsr lub_pmfsr"
   (is "partial_function_definitions ?R _")
 proof
@@ -1455,7 +1448,7 @@ next
   fix x y z
   assume "?R x y" "?R y z"
   with transp_ord_option[OF transp_equality] show "?R x z"
-    unfolding ord_pmfsr_def by (fastforce simp: rel_fun_def transp_def)    
+    unfolding ord_pmfsr_def by (fastforce simp: rel_fun_def transp_def)
 next
   fix x y
   assume "?R x y" "?R y x"
@@ -1599,7 +1592,7 @@ lemma bind_return_pmfs: "bind_pmfs (return_pmfs x) r = r x"
   by transfer (rule bind_return_pmfsr)
 
 lemma bind_assoc_pmfs: "(A :: 'a pmfs) \<bind> B \<bind> C = A \<bind> (\<lambda>x. B x \<bind> C)"
-  by transfer (rule bind_assoc_pmfsr)  
+  by transfer (rule bind_assoc_pmfsr)
 
 lemma bind_pmfs_cong:
    "r = r' \<Longrightarrow> (\<And>x. x \<in> range_pmfs r \<Longrightarrow> f x = f' x) \<Longrightarrow> bind_pmfs r f = bind_pmfs r' f'"
@@ -1681,7 +1674,7 @@ lemma lub_pmfs_const [simp]: "lub_pmfs {r} = r"
 lemma bot_pmfs_is_least [simp, intro]: "ord_pmfs bot_pmfs r"
   by transfer (auto simp: ord_pmfsr_def)
 
-lemma partial_function_definitions_pmfs: 
+lemma partial_function_definitions_pmfs:
   "partial_function_definitions ord_pmfs lub_pmfs"
   (is "partial_function_definitions ?R _")
 proof
@@ -1691,7 +1684,7 @@ next
   fix x y z
   assume "?R x y" "?R y z"
   thus "?R x z"
-    by transfer (rule pmfsr.leq_trans)    
+    by transfer (rule pmfsr.leq_trans)
 next
   fix x y
   assume "?R x y" "?R y x"
@@ -1755,8 +1748,8 @@ lemma monotone_bind_pmfsr1: "monotone ord_pmfsr ord_pmfsr (\<lambda>y. bind_pmfs
   by (rule monotoneI) (simp add: bind_pmfsr_mono')
 
 lemma monotone_bind_pmfsr2:
-  assumes g: "\<And>x. monotone ord' ord_pmfsr (\<lambda>y. g y x)"
-  shows "monotone ord' ord_pmfsr (\<lambda>y. bind_pmfsr p (g y))"
+  assumes g: "\<And>x. monotone ord ord_pmfsr (\<lambda>y. g y x)"
+  shows "monotone ord ord_pmfsr (\<lambda>y. bind_pmfsr p (g y))"
   by (rule monotoneI) (auto intro: bind_pmfsr_mono' monotoneD[OF g])
 
 lemma bind_lub_pmfsr:
@@ -1799,8 +1792,8 @@ lemma mcont_bind_pmfsr1: "mcont lub_pmfsr ord_pmfsr lub_pmfsr ord_pmfsr (\<lambd
   using monotone_bind_pmfsr1 by (rule mcontI) (rule contI, simp add: bind_lub_pmfsr)
 
 lemma bind_lub_pmfsr2:
-  assumes chain: "Complete_Partial_Order.chain ord' Y"
-  and g: "\<And>y. monotone ord' ord_pmfsr (g y)"
+  assumes chain: "Complete_Partial_Order.chain ord Y"
+  and g: "\<And>y. monotone ord ord_pmfsr (g y)"
   shows "bind_pmfsr x (\<lambda>y. lub_pmfsr (g y ` Y)) = lub_pmfsr ((\<lambda>p. bind_pmfsr x (\<lambda>y. g y p)) ` Y)"
   (is "?lhs = ?rhs")
   sorry
@@ -1889,7 +1882,7 @@ by(rule mcontI monotone_set_pmfsr cont_set_pmfsr)+
 
 (*
   NB: if a recursively defined sampler (PMFS) is lossless, then due to the monotonicity of
-  spmf_of_pmfs, the SPMF defined by the equivalent recurrence is unique, lossless, and equals the 
+  spmf_of_pmfs, the SPMF defined by the equivalent recurrence is unique, lossless, and equals the
   one generated by the sampler.
 
   At least I think so.
@@ -1904,7 +1897,7 @@ proof (rule pmf_eqI)
     case None
     thus ?thesis
       using assms apply (simp add: pmf_None_eq_weight_spmf)
-      by (metis ennreal_le_iff measure_nonneg measure_spmf.emeasure_eq_measure 
+      by (metis ennreal_le_iff measure_nonneg measure_spmf.emeasure_eq_measure
                 measure_spmf.subprob_measure_le_1 ord_spmf_eqD_emeasure order_antisym_conv
                 space_measure_spmf)
   next
@@ -2005,7 +1998,7 @@ lemma map_lub_spmf:
   \<Longrightarrow> map_spmf f (lub_spmf Y) = lub_spmf (map_spmf f ` Y)"
 unfolding map_spmf_conv_bind_spmf[abs_def] by(simp add: bind_lub_spmf o_def)
 *)
-                   
+
 lemma mcont_bind_pmfs1: "mcont lub_pmfs ord_pmfs lub_pmfs ord_pmfs (\<lambda>y. bind_pmfs y f)"
   using monotone_bind_pmfs1 by (rule mcontI) (rule contI, simp add: bind_lub_pmfs)
 
@@ -2295,7 +2288,7 @@ begin
 
 partial_function (pmfs) fast_dice_roll :: "nat \<Rightarrow> nat \<Rightarrow> nat pmfs"
 where
-  "fast_dice_roll v c = 
+  "fast_dice_roll v c =
   (if v \<ge> n then if c < n then return_pmfs c else fast_dice_roll (v - n) (c - n)
    else do {
      b \<leftarrow> coin_pmfs;
