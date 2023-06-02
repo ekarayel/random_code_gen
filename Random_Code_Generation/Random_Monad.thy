@@ -4,6 +4,8 @@ theory Random_Monad
     "HOL-Library.Extended_Nat"
     "Permuted_Congruential_Generator"
     "Coin_Space"
+    "Coin_Space_Topology"
+    "Tau_Additivity"
     "Zeta_Function.Zeta_Library"
     (* The last import is to pull set_nn_integral_cong which should be in
     HOL-Analysis.Set_Integral. *)
@@ -251,10 +253,11 @@ lemma prefixes_at_most_one:
   "at_most_one {p \<in> ptree_rm f. sprefix p x}"
   unfolding at_most_one_def using same_prefix_not_parallel prefixes_parallel by blast
 
+definition "consumed_prefix f bs = the_elem_opt {p \<in> ptree_rm f. sprefix p bs}"
+
 lemma wf_random_alt:
   assumes "wf_random f"
-  shows "f bs = (case the_elem_opt {p \<in> ptree_rm f. sprefix p bs} of
-      None \<Rightarrow> None | Some p \<Rightarrow> Some (eval_rm f p, sdrop (length p) bs))"
+  shows "f bs = map_option (\<lambda>p. (eval_rm f p, sdrop (length p) bs)) (consumed_prefix f bs)" 
 proof (cases "f bs")
   case None
   have "False" if p_in: "p \<in> ptree_rm f" and p_pref: "sprefix p bs" for p
@@ -269,7 +272,7 @@ proof (cases "f bs")
   qed
   hence 0:"{p \<in> ptree_rm f. sprefix p bs} = {}"
     by auto
-  show ?thesis unfolding 0 None by simp
+  show ?thesis unfolding 0 None consumed_prefix_def by simp
 next
   case (Some a)
   moreover obtain r cs where "a = (r, cs)" by (cases a) auto
@@ -282,11 +285,43 @@ next
     unfolding ptree_rm_def by auto
   hence 0:"{p \<in> ptree_rm f. sprefix p bs} = {p}"
     using prefixes_singleton by auto
-  show ?thesis unfolding 0 wf_on_prefixD[OF wf sp] by simp
+  show ?thesis unfolding 0 wf_on_prefixD[OF wf sp] consumed_prefix_def by simp
+qed
+
+lemma range_rm_alt:
+  assumes "wf_random f"
+  shows "range_rm f = eval_rm f ` ptree_rm f" (is "?L = ?R")
+proof -
+  have 0:"sprefix p (p@-sconst False)" for p
+    unfolding sprefix_def by auto
+  have "?L = {x. \<exists>bs. map_option (eval_rm f) (consumed_prefix f bs) = Some x}"
+    unfolding range_rm_def comp_def by (subst wf_random_alt[OF assms]) 
+      (simp add:map_option.compositionality comp_def vimage_def image_iff eq_commute)
+  also have "... = {x. \<exists>p bs. x = eval_rm f p \<and> consumed_prefix f bs = Some p}"
+    unfolding map_option_eq_Some
+    by (intro Collect_cong) metis
+  also have "... = {x. \<exists>p. p \<in>ptree_rm f \<and> x = eval_rm f p}"
+    unfolding consumed_prefix_def the_elem_opt_Some_iff[OF prefixes_at_most_one] 
+    using 0 prefixes_singleton
+    by (intro Collect_cong) blast
+  also have "... = ?R"
+    by auto
+  finally show ?thesis
+    by simp
+qed
+
+lemma consumed_prefix_some_iff:
+  "consumed_prefix f bs = Some p \<longleftrightarrow> (p \<in> ptree_rm f \<and> sprefix p bs)"
+proof -
+  have "p \<in> ptree_rm f \<Longrightarrow> sprefix p bs \<Longrightarrow> x \<in> ptree_rm f \<Longrightarrow> sprefix x bs \<Longrightarrow> x = p" for x
+    using same_prefix_not_parallel prefixes_parallel by blast
+  thus ?thesis
+    unfolding consumed_prefix_def the_elem_opt_Some_iff[OF prefixes_at_most_one] 
+    by auto 
 qed
 
 definition consumed_bits where 
-  "consumed_bits f bs = (case the_elem_opt {p. p \<in> ptree_rm f \<and> sprefix p bs}
+  "consumed_bits f bs = (case consumed_prefix f bs
     of None \<Rightarrow> \<infinity> | Some p \<Rightarrow> enat (length p))"
 
 lemma wf_random_alt2:
@@ -295,31 +330,11 @@ lemma wf_random_alt2:
     case consumed_bits f bs of
       \<infinity> \<Rightarrow> None | 
       enat n \<Rightarrow> Some (eval_rm f (stake n bs), sdrop n bs))"
-proof (cases "consumed_bits f bs")
-  case (enat n)
-  then obtain p where p_def:
-    "the_elem_opt {p. p \<in> ptree_rm f \<and> sprefix p bs} = Some p" "length p = n"
-    unfolding consumed_bits_def by (simp split:option.split_asm)
-
-  have "p \<in> {p. p \<in> ptree_rm f \<and> sprefix p bs}"
-    using p_def(1) unfolding the_elem_opt_Some_iff[OF prefixes_at_most_one] by auto
-  hence 0: "p = stake n bs"
-    using p_def(2) by (simp add:set_eq_iff sprefix_def)
-
-  have "f bs = Some (eval_rm f p, sdrop (length p) bs)"
-    by (subst wf_random_alt[OF assms]) (simp add:p_def)
-  also have "... = Some (eval_rm f (stake n bs), sdrop n bs)"
-    unfolding p_def(1) by (simp add:0)
-  finally have "f bs = Some (eval_rm f (stake n bs), sdrop n bs)" 
-    by simp
-  then show ?thesis using enat by simp 
-next
-  case infinity
-  hence 0:"the_elem_opt {p. p \<in> ptree_rm f \<and> sprefix p bs} = None"
-    unfolding consumed_bits_def by (simp split:option.split_asm)
-  have "f bs = None"
-    by (subst wf_random_alt[OF assms]) (simp add:0)
-  then show ?thesis using infinity by simp
+proof -
+  have "sprefix x bs" if "consumed_prefix f bs = Some x" for x
+    using that the_elem_opt_Some_iff[OF prefixes_at_most_one] unfolding consumed_prefix_def by auto
+  thus ?thesis
+    by (subst wf_random_alt[OF assms]) (simp add:consumed_bits_def sprefix_def split:option.split)
 qed
 
 lemma consumed_bits_inf_iff: 
@@ -332,7 +347,7 @@ lemma consumed_bits_enat_iff:
 proof 
   assume "consumed_bits f bs = enat n"
   then obtain p where "the_elem_opt {p \<in> ptree_rm f. sprefix p bs} = Some p" and 0: "length p = n"
-    unfolding consumed_bits_def by (auto split:option.split_asm) 
+    unfolding consumed_bits_def consumed_prefix_def by (auto split:option.split_asm) 
   hence "p \<in> ptree_rm f" "sprefix p bs"
     unfolding the_elem_opt_Some_iff[OF prefixes_at_most_one] by auto 
   thus "stake n bs \<in> ptree_rm f"
@@ -344,101 +359,8 @@ next
   hence "{p \<in> ptree_rm f. sprefix p bs} = {stake n bs}"
     using prefixes_singleton by auto
   thus "consumed_bits f bs = enat n"
-    unfolding consumed_bits_def by simp
+    unfolding consumed_bits_def consumed_prefix_def by simp
 qed
-
-lemma 
-  assumes "wf_random f"
-  assumes "consumed_bits f bs = enat n"
-  assumes "stake n bs = stake n bs'" 
-  shows "f bs = f bs'"
-  sorry
-
-(*
-lemma wf_randomD:
-  assumes "wf_random f"
-  assumes "f bs = Some (r, bs')"
-  obtains p where "sprefix p bs" "wf_on_prefix f p r"
-proof -
-  have "\<exists>p. sprefix p bs \<and> wf_on_prefix f p r"
-    using assms unfolding wf_random_def by (auto split:option.split_asm)
-  thus ?thesis using that by auto
-qed
-
-lemma consumed_prefix_unique_helper:
-  assumes "length p \<le> length q"
-  assumes "sprefix p bs" "sprefix q bs"
-  assumes "wf_on_prefix f p r" "wf_on_prefix f q r"
-  shows "p = q"
-proof -
-  have "prefix p q"
-    using sprefix_length_prefix[OF assms(1-3)] by simp
-  then obtain h where h_def:"q = p@h"
-    using prefixE by auto
-
-  have "h@-cs = cs" for cs
-  proof-
-    have "Some (r,cs) =  f ((p@h)@-cs)"
-      using assms(5) unfolding h_def[symmetric] wf_on_prefix_def by auto
-    also have "... = f (p@-(h@-cs))"
-      by simp
-    also have "... = Some (r, h@-cs)"
-      using assms(4) unfolding wf_on_prefix_def by auto
-    finally have "Some (r,cs) = Some (r, h@-cs)"
-      by simp
-    thus ?thesis by simp
-  qed
-  hence "h = []"
-    by (intro empty_if_shift_idem) simp
-  thus "p = q"
-    using h_def by simp
-qed
-
-lemma consumed_prefix_unique:
-  assumes "sprefix p bs" "sprefix q bs"
-  assumes "wf_on_prefix f p r" "wf_on_prefix f q r"
-  shows "p = q"
-proof (cases "length p \<le> length q")
-  case True
-  show ?thesis 
-    using consumed_prefix_unique_helper[OF True assms(1,2,3,4)] by simp
-next
-  case False
-  hence 0:"length q \<le> length p" 
-    by simp
-  show ?thesis 
-    using consumed_prefix_unique_helper[OF 0 assms(2,1,4,3)] by simp
-qed
-
-definition consumed_prefix :: "'a random_monad \<Rightarrow> bool stream \<Rightarrow> bool list" where
-  "consumed_prefix f bs = (THE p. sprefix p bs \<and> wf_on_prefix f p (fst (the (f bs))))"
-
-lemma consumed_prefixD:
-  assumes "wf_random f"
-  assumes "f bs = Some (r, bs')"
-  shows 
-    "sprefix (consumed_prefix f bs) bs" (is "?A") 
-    "wf_on_prefix f (consumed_prefix f bs) r" (is "?B")
-proof -
-  have 0:"fst (the (f bs)) = r"
-    using assms by simp
-
-  obtain p where p_def: "sprefix p bs \<and> wf_on_prefix f p r"
-    using wf_randomD[OF assms] by auto
-  hence p_eq_q: "q = p" if "sprefix q bs \<and> wf_on_prefix f q r" for q
-    using consumed_prefix_unique that by metis
-
-  have "sprefix (consumed_prefix f bs) bs \<and> wf_on_prefix f (consumed_prefix f bs) r"
-    unfolding 0 consumed_prefix_def by (rule theI2, use p_def p_eq_q in auto)
-  thus ?A ?B by auto
-qed
-
-definition consumed_bits'
-  where "consumed_bits' f bs = (
-    case f bs of 
-        None \<Rightarrow> \<infinity> 
-      | Some (r,bs') \<Rightarrow> length (consumed_prefix f bs))"
-*)
 
 locale wf_random_fun =
   fixes f :: "'a random_monad"
@@ -456,7 +378,7 @@ proof -
       using x_ne_inf that by auto
 
     have "?L = {bs. \<exists>p. sprefix p bs \<and> length p = n \<and> p \<in> ptree_rm f}"
-      unfolding vimage_def space_coin_space consumed_bits_def x_def
+      unfolding vimage_def space_coin_space consumed_bits_def consumed_prefix_def x_def
       by (simp add:set_eq_iff prefixes_at_most_one split:option.split) metis
     also have "... = {bs. stake n bs \<in> ptree_rm f}"
       unfolding sprefix_def by (intro Collect_cong) (metis length_stake)
@@ -492,81 +414,12 @@ proof -
     by simp
 qed
 
-(*
-lemma indep_rem:
-  assumes "consumed_bits f bs = enat n"
-  assumes "stake n bs = stake n bs'"
-  shows "map_option fst (f bs) = map_option fst (f bs')"
-proof -
-  have nn: "f bs \<noteq> None" and lp: "length (consumed_prefix f bs) = n"
-    using assms(1) unfolding consumed_bits_def by (auto split:option.split_asm)
-
-  define r where "r = fst (the (f bs))"
-
-  have c1:"wf_on_prefix f (consumed_prefix f bs) r" and c2: "sprefix (consumed_prefix f bs) bs"
-    using nn consumed_prefixD[OF wf] r_def by auto
-  have "bs' = (consumed_prefix f bs)@-sdrop n bs'"
-    using assms(2) by (metis c2 lp sprefix_def stake_sdrop)
-  hence "f bs' = Some (r, sdrop n bs')"
-    using c1 unfolding wf_on_prefix_def by metis
-  thus ?thesis
-    using r_def nn by auto
-qed
-
-lemma "countable (range (map_option fst \<circ> f))"
-proof -
-  have 0:"(range (map_option fst \<circ> f)) = (\<Union>k. (map_option fst \<circ> f) ` {bs. consumed_bits f bs = k})"
-    by auto
-
-  have 1: "finite ((map_option fst \<circ> f) ` {bs. consumed_bits f bs = k})" (is "finite ?T") for k
-  proof (cases k)
-    case (enat n)
-
-    define drp where "drp bs = stake n bs @- sconst False" for bs
-
-    have 2:"drp ` {bs. consumed_bits f bs = k} \<subseteq> 
-      (\<lambda>x. x@- sconst False) ` {p. set p \<subseteq> UNIV \<and> length p = n}"
-      unfolding drp_def by (auto simp add:image_iff)
-
-    have "?T = (map_option fst \<circ> f \<circ> drp) ` {bs. consumed_bits f bs = k}"
-    proof (rule image_cong[OF refl])
-      fix bs assume "bs \<in> {bs. consumed_bits f bs = k}"
-
-      hence "map_option fst (f bs) = map_option fst (f (drp bs))"
-        unfolding drp_def enat
-        by (intro indep_rem) (auto simp add: stake_shift)
-      thus "(map_option fst \<circ> f) bs = (map_option fst \<circ> f \<circ> drp) bs"
-        by simp
-    qed
-    also have "... = (map_option fst \<circ> f) ` (drp ` {bs. consumed_bits f bs = k})"
-      unfolding image_image by simp
-    finally have "?T = (map_option fst \<circ> f) ` (drp ` {bs. consumed_bits f bs = k})"
-      by simp
-    moreover have "finite (drp ` {bs. consumed_bits f bs = k})"
-      by (intro finite_subset[OF 2] finite_imageI finite_lists_length_eq) auto
-    ultimately show ?thesis by simp
-  next
-    case infinity
-    hence "{bs. consumed_bits f bs = k} \<subseteq> {bs. f bs = None}"
-      unfolding consumed_bits_def by (intro subsetI) (simp split:option.split_asm) 
-    hence "(map_option fst \<circ> f) ` {bs. consumed_bits f bs = k} \<subseteq> {None}"
-      by auto
-    with finite_subset[OF this] show ?thesis 
-      by simp
-  qed
-
-  thus ?thesis
-    using countable_finite unfolding 0 by (intro countable_UN) auto
-qed
-*)
-
 lemma countable_range: "countable (range_rm f)"
 proof -
   have "countable (eval_rm f ` UNIV)"
     by (intro countable_image) simp
   moreover have "range_rm f \<subseteq> eval_rm f ` UNIV"
-    unfolding range_rm_def comp_def 
-    by (subst wf_random_alt[OF wf]) (auto split:option.split_asm)
+    unfolding range_rm_alt[OF wf] by auto
   ultimately show ?thesis using countable_subset by blast
 qed
 
@@ -602,6 +455,50 @@ proof -
     using 0 by (intro measurable_cong) (simp add:comp_def)
   ultimately show ?thesis
     by auto
+qed
+
+lemma consumed_prefix_continuous: 
+  "continuous_map euclidean option_ud (consumed_prefix f \<circ> to_coins)"
+proof (intro contionuos_into_option_udI)
+  fix x :: "bool list"
+
+  have "open ((consumed_prefix f \<circ> to_coins) -` {Some x})" (is "open ?T")
+  proof (cases "x \<in> ptree_rm f")
+    case True
+    hence "?T = {bs. sprefix x (to_coins bs)}"
+      unfolding vimage_def comp_def by (simp add:consumed_prefix_some_iff)
+    also have "... = {bs. (\<forall>i < length x. to_coins bs !! i = x ! i)}"
+      unfolding sprefix_iff by (intro Collect_cong) auto
+    also have "... = {bs. (\<forall>i < length x. of_discrete (bs i) = of_discrete (discrete (x ! i)))}"
+      unfolding to_coins_def to_stream_def 
+      by (intro Collect_cong all_cong) (simp add: discrete_inverse)
+    also have "... = {bs. (\<forall>i < length x. bs i = discrete (x ! i))}"
+      using of_discrete_inject by (intro Collect_cong all_cong) auto
+    also have "... = PiE UNIV (\<lambda>i. if i < length x then {discrete (x ! i)} else UNIV)"
+      by (simp add:PiE_def Pi_def  set_eq_iff )
+    finally have 0:"?T = PiE UNIV (\<lambda>i. if i < length x then {discrete (x ! i)} else UNIV)"
+      by simp
+    thus ?thesis
+      unfolding 0 by (intro open_PiE) (auto intro:open_discrete)
+  next
+    case False
+    hence "?T = {}"
+      unfolding vimage_def comp_def by (simp add:consumed_prefix_some_iff)
+    thus ?thesis
+      by simp
+  qed
+  thus "openin euclidean ((consumed_prefix f \<circ> to_coins) -` {Some x} \<inter> topspace euclidean)"
+    by simp
+qed
+
+lemma f_continuous: "continuous_map euclidean option_ud (map_option fst \<circ> f \<circ> to_coins)" 
+proof -
+  have 0: "map_option fst \<circ> (\<lambda>bs. f bs) \<circ> to_coins = 
+    map_option (eval_rm f) \<circ> (consumed_prefix f \<circ> to_coins)"
+    by (subst wf_random_alt[OF wf]) (simp add:map_option.compositionality comp_def)
+
+  show ?thesis unfolding 0
+    by (intro continuous_map_compose[OF consumed_prefix_continuous] map_option_continuous)
 qed
 
 lemma measure_rm_measurable: "map_option fst \<circ> f \<in> \<B> \<rightarrow>\<^sub>M \<D>"
@@ -663,6 +560,10 @@ proof -
     by (intro measurable_comp[OF the_f_measurable]) simp
   thus ?thesis by (simp add:comp_def)
 qed
+
+lemma prob_space_measure_rm:
+  "prob_space (measure_rm f)"
+  unfolding measure_rm_def by (intro coin_space.prob_space_distr measure_rm_measurable)
 
 lemma remainder_indep: 
   "distr R (\<D> \<Otimes>\<^sub>M \<B>) (the \<circ> f) = distr R \<D> (fst \<circ> the \<circ> f) \<Otimes>\<^sub>M \<B>"
@@ -966,61 +867,32 @@ next
     by simp
 qed
 
+lemma return_discrete: "return \<D> x = return_pmf x"
+  by (intro measure_eqI) auto
 
+lemma measure_rm_return: "measure_rm (return_rm x) = return \<D> (Some x)"
+  unfolding return_rm_def measure_rm_def by (simp add:comp_def)
 
-(*
-  f1 \<le> f2 \<le> ... 
-  chain F \<Longrightarrow> wf_lub F    hmm
+lemma measure_rm_return': "measure_rm (return_rm x) = return_spmf x"
+  unfolding measure_rm_return return_discrete by auto
 
-  lub_pmf (rm_pmf ` F) = rm_pmf (lub_rm F)
-
-  lub_spmf (\<lambda>f. distr B discrete (map_opt fst o f)) ` F = distr B discrete (map_opt fst o lub_rm F)
-  
-  we already know that the RHS is well defined
-  we can even go to the Abs_pmf
-
-  lub_spmf (\<lambda>f. distr B discrete (map_opt fst o f)) ` F x
-  = Sup f in F (Abs_pmf (distr B discrete (map_opt fst o f)) x) 
-  = Sup f in F (measure {bs. map_opt fst (f bs) = Some x})   
-        -- should be trivial because of the chain property
-  \<le> (straightforward)
-  \<ge> (because the fixed point is in the iterates?)
-  
-  =? measure {bs. map_opt fst (lub_rm F bs) = Some x}
-  = .. 
-  
-
-*)
-
-lemma "lub_spmf = undefined"
-  sorry
+lemma measure_rm_coin: "measure_rm coin_rm = coin_spmf" (is "?L = ?R")
+proof -
+  have "?L = distr \<B> \<D> (\<lambda>x. Some (shd x))"
+    unfolding coin_rm_def measure_rm_def by (simp add:comp_def)
+  also have "... = distr (distr \<B> \<D> shd) \<D> Some"
+    unfolding coin_space_def by (subst distr_distr) (auto simp add:comp_def)
+  also have "... = map_pmf Some (pmf_of_set UNIV)"
+    unfolding distr_shd  map_pmf_rep_eq by simp
+  also have "... = spmf_of_pmf (pmf_of_set UNIV)"
+    by (simp add:spmf_of_pmf_def)
+  also have "... = coin_spmf"
+    by auto
+  finally show ?thesis by simp
+qed
 
 definition run :: "'a random_monad \<Rightarrow> 'a option" 
     where "run f = map_option fst (f (random_bits 0))"
-
-definition rm_measure :: "'a random_monad \<Rightarrow> 'a option measure" 
-  where "rm_measure f = distr \<B> \<D> (map_option fst \<circ> f)"
-
-definition rm_pmf :: "'a  random_monad \<Rightarrow> 'a spmf"
-  where "rm_pmf f = Abs_pmf (rm_measure f)"
-
-(*
-  Better to use typedef
-*)
-lemma rm_pmf_bind:
-  "rm_pmf (f \<bind> g) = rm_pmf f \<bind> (\<lambda>x. rm_pmf (g x))"
-  sorry
-
-lemma rm_pmf_coin:
-  "rm_pmf coin = coin_spmf"
-  sorry
-
-lemma rm_pmf_return:
-  "rm_pmf (return_rm x) = return_spmf x"
-  sorry
-
-definition weight :: "'a random_monad \<Rightarrow> real"
-  where "weight f = weight_spmf (rm_pmf f)"
 
 lemma hurd_rm_interp: 
   "partial_function_definitions (fun_ord (flat_ord None)) (fun_lub (flat_lub None))"
@@ -1080,7 +952,144 @@ proof (rule wf_randomI)
     using 3 by auto
 qed
 
-abbreviation "mono_rm \<equiv> monotone (fun_ord rord) (rord)"
+lemma rord_mono:
+  assumes "rord f g"
+  assumes "\<not> (P None)"
+  assumes "P (f bs)"
+  shows "P (g bs)"
+  using assms unfolding rord_def fun_ord_def flat_ord_def by metis
+
+lemma measure_rm_lub:
+  assumes "F \<noteq> {}"
+  assumes "Complete_Partial_Order.chain rord F"
+  assumes "\<And>f. f \<in> F \<Longrightarrow> wf_random f"
+  assumes "None \<notin> A"
+  shows "emeasure (measure_rm (rlub F)) A = (SUP f \<in> F. emeasure (measure_rm f) A)" (is "?L = ?R")
+proof -
+  have wf_lub_1: "wf_random (rlub F)"
+    by (intro wf_lub assms)
+
+  interpret wf_lub: wf_random_fun "rlub F"
+    unfolding wf_random_fun_def by (intro wf_lub assms)
+
+  have wf_f: "wf_random_fun f" if "f \<in> F" for f 
+    using assms(3) that unfolding wf_random_fun_def by auto
+
+  have 4: "rord f (rlub F)" if "f \<in> F" for f
+    using that random_monad_pd.lub_upper[OF assms(2)] by simp
+
+  have 0:"map_option fst (rlub F bs) \<in> A \<longleftrightarrow> (\<exists>f \<in> F. map_option fst (f bs) \<in> A)" for bs
+  proof
+    assume "\<exists>f\<in>F. map_option fst (f bs) \<in> A"
+    then obtain f where 3:"map_option fst (f bs) \<in> A" and 5:"f \<in> F"
+      by auto
+    show "map_option fst (rlub F bs) \<in> A"
+      by (rule rord_mono[OF 4[OF 5]]) (use 3 assms(4) in auto)
+  next
+    assume "map_option fst (rlub F bs) \<in> A"
+    then obtain y where 6:"rlub F bs = Some y" "Some (fst y) \<in> A"
+      using assms(4) by (cases "rlub F bs") auto
+    hence "f bs = None \<or> f bs = Some y" if "f \<in> F" for f
+      using 4[OF that] unfolding rord_def fun_ord_def flat_ord_def by auto
+    moreover have "rlub F bs = None" if "\<And>f. f \<in> F \<Longrightarrow> f bs = None"
+      using that unfolding rlub_def flat_lub_def fun_lub_def by auto 
+    ultimately obtain f where "f bs = Some y" "f \<in> F" 
+      using 6(1) by auto
+    thus "\<exists>f\<in>F. map_option fst (f bs) \<in> A"
+      using 6(2) by force
+  qed
+
+  have 1: "Complete_Partial_Order.chain (\<subseteq>) ((\<lambda>f. {bs. map_option fst (f (to_coins bs)) \<in> A}) ` F)"
+    using assms(4) by (intro chain_imageI[OF assms(2)] Collect_mono impI) (auto intro:rord_mono)
+
+  have 2: "open {bs. map_option fst (f (to_coins bs)) \<in> A}" (is "open ?T") if "f \<in> F" for f
+  proof -
+    interpret wf_f: wf_random_fun f
+      unfolding wf_random_fun_def by (intro assms that)
+    have 4:"?T = {bs \<in> topspace euclidean. (map_option fst \<circ> f \<circ> to_coins) bs \<in> A}"
+      by simp
+    have "openin option_ud A"
+      using assms(4) unfolding openin_option_ud by simp
+    hence "openin euclidean ?T"
+      unfolding 4 by (intro openin_continuous_map_preimage[OF wf_f.f_continuous])
+    thus ?thesis
+      using open_openin by simp
+  qed
+
+  have 3: "{bs. map_option fst (f bs) \<in> A} \<in> sets \<B>" (is "?L1 \<in> _") if "wf_random f" for f
+  proof -
+    interpret wf_f: wf_random_fun f
+      unfolding wf_random_fun_def by (intro that)
+    have "?L1 = ((map_option fst \<circ> f) -` A) \<inter> space \<B>"
+      unfolding space_coin_space vimage_def by simp
+    also have "... \<in> sets \<B>"
+      by (intro measurable_sets[OF wf_f.measure_rm_measurable]) auto
+    finally show ?thesis by simp
+  qed
+
+  have "?L = emeasure \<B> ((map_option fst \<circ> rlub F) -` A \<inter> space \<B>)"
+    unfolding measure_rm_def by (intro emeasure_distr wf_lub.measure_rm_measurable) auto
+  also have "... = emeasure \<B> {x. map_option fst (rlub F x) \<in> A}"
+    unfolding space_coin_space by (simp add:vimage_def)
+  also have "... = emeasure \<B>\<^sub>t (to_coins -` {x. map_option fst (rlub F x) \<in> A} \<inter> space \<B>\<^sub>t)"
+    by (subst B_eq_distr) (intro emeasure_distr to_coins_measurable 3 wf_lub_1)
+  also have "... = emeasure \<B>\<^sub>t (\<Union>f \<in> F. {bs. map_option fst (f (to_coins bs)) \<in> A})"
+    unfolding 0 space_B_t by (intro arg_cong2[where f="emeasure"]) auto 
+  also have "... = Sup (emeasure \<B>\<^sub>t ` (\<lambda>f. {bs. map_option fst (f (to_coins bs)) \<in> A}) ` F)"
+    using 2 B_t_finite
+    by (intro tau_additivity[OF coin_space_is_borel_measure] chain_imp_union_stable 1) auto
+  also have "... = (SUP f \<in> F. (emeasure \<B>\<^sub>t (to_coins -` {bs. map_option fst (f bs)\<in>A}\<inter>space \<B>\<^sub>t)))"
+    unfolding image_image space_B_t vimage_def by simp
+  also have "... = (SUP f \<in> F. (emeasure \<B> {bs. map_option fst (f bs) \<in> A}))"
+    by (subst B_eq_distr) (intro arg_cong[where f="Sup"] image_cong emeasure_distr[symmetric] 
+        to_coins_measurable 3 refl assms)
+  also have "... = (SUP f\<in>F. emeasure \<B> ((map_option fst \<circ> f) -` A \<inter> space \<B>))"
+    by (simp add:image_image space_coin_space vimage_def)
+  also have "... = ?R"
+    unfolding measure_rm_def using wf_random_fun.measure_rm_measurable[OF wf_f]
+    by (intro arg_cong[where f="(Sup)"] image_cong ext emeasure_distr[symmetric]) auto
+  finally show ?thesis 
+    by simp
+qed
+
+lemma measure_rm_rord_mono:
+  assumes "wf_random f" "wf_random g" "rord f g"
+  assumes "None \<notin> A"
+  shows "emeasure (measure_rm f) A \<le> emeasure (measure_rm g) A" (is "?L \<le> ?R")
+proof -
+  have 0:"Complete_Partial_Order.chain rord {f,g}"
+    using assms(3) unfolding Complete_Partial_Order.chain_def 
+    using random_monad_pd.leq_refl by auto
+  have "rord (rlub {f,g}) g"
+    using assms(3) random_monad_pd.leq_refl
+    by (intro random_monad_pd.lub_least 0) auto
+  moreover have "rord g (rlub {f,g})"
+    by (intro random_monad_pd.lub_upper 0) simp
+  ultimately have 1:"g = rlub {f,g}"
+    by (intro random_monad_pd.leq_antisym) auto
+
+  have "emeasure (measure_rm f) A \<le> (SUP x \<in> {f,g}. emeasure (measure_rm x) A)"
+    using wf_random_fun.prob_space_measure_rm assms(1,2) prob_space.measure_le_1 
+    unfolding wf_random_fun_def by (intro cSup_upper bdd_aboveI[where M="1"]) auto
+  also have "... = emeasure (measure_rm (rlub {f,g})) A"
+    using assms by (intro measure_rm_lub[symmetric] 0) auto
+  also have "... = emeasure (measure_rm g) A"
+    using 1 by auto
+  finally show ?thesis
+    by simp
+qed
+
+lemma measure_rm_None: "measure_rm (\<lambda>_. None) = measure_pmf (return_pmf (None :: 'a option))"
+proof -
+  have "emeasure (measure_rm Map.empty) A = emeasure (measure_pmf (return_pmf None)) A" 
+    for A :: "'a option set"
+    using coin_space.emeasure_space_1 unfolding measure_rm_def 
+    by (subst emeasure_distr) simp_all
+  thus ?thesis
+    by (intro measure_eqI) (simp_all add:measure_rm_def)
+qed
+
+abbreviation "mono_rm \<equiv> monotone (fun_ord rord) rord"
 
 lemma bind_mono_aux:
   assumes "rord f1 f2" "\<And>y. rord (g1 y) (g2 y)"

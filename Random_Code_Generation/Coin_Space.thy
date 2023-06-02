@@ -2,9 +2,189 @@ theory Coin_Space
   imports 
     "HOL-Probability.Probability" 
 begin
+
+lemma countable_mono_enum:
+  fixes S :: "nat set"
+  assumes "S \<noteq> {}"
+  shows "\<exists>(f :: nat \<Rightarrow> nat). range f = S \<and> mono f"
+proof -
+  define f where "f x = (if S \<inter> {..x} \<noteq> {} then Max (S \<inter> {..x}) else Inf S)" for x
+
+  have "S \<inter> {..<n} \<subseteq> f ` {..<n}" for n
+  proof (induction n)
+    case 0 
+    thus ?case by auto
+  next
+    case (Suc n)
+    show ?case
+    proof (cases "n \<in> S")
+      case True
+      hence "Max (S \<inter> {..n}) = n" by (intro Max_eqI) auto
+      hence "f n = n" using True unfolding f_def by auto
+      thus ?thesis using Suc unfolding lessThan_Suc by auto
+    next
+      case False
+      thus ?thesis using Suc unfolding lessThan_Suc by auto
+    qed
+  qed
+  hence "S \<subseteq> range f" by blast
+  moreover have "f x \<in> S" for x
+  proof (cases "S  \<inter> {..x} \<noteq> {}")
+    case True
+    hence "f x = Max (S  \<inter> {..x})" unfolding f_def by simp
+    also have "... \<in> (S  \<inter> {..x})" using True by (intro Max_in) auto
+    also have "... \<subseteq> S" by auto
+    finally show ?thesis by simp
+  next
+    case False
+    hence "f x = Inf S" unfolding f_def by simp
+    also have "... \<in> S" using assms Inf_nat_def1 by simp
+    finally show ?thesis by simp
+  qed
+  ultimately have "range f = S" by blast
+
+  moreover have "f x \<le> f (Suc x)" for x
+  proof -
+    consider (a) "S \<inter> {..Suc x} = {}" | (b) "S \<inter> {..x} = {} \<and> Suc x \<in> S" | (c) "S \<inter> {..x} \<noteq> {}"
+      using atMost_Suc by force
+    thus ?thesis
+    proof (cases)
+      case a
+      hence "S \<inter> {..x} = {}" by auto
+      then show ?thesis using a unfolding f_def by auto
+    next
+      case b
+      hence "S \<inter> {..Suc x} \<noteq> {}" by auto
+      moreover have "Inf S = Suc x" using b by (intro cInf_eq_minimum) auto
+      then show ?thesis using b unfolding f_def by simp
+    next
+      case c
+      hence "S \<inter> {..Suc x} \<noteq> {}" by auto
+      then show ?thesis using c unfolding f_def by simp
+    qed
+  qed
+  hence "mono f" by (simp add: mono_iff_le_Suc)
+  ultimately show ?thesis by auto
+qed
+
+lemma countable_chain_incseq:
+  assumes "countable X" "X \<noteq> {}"
+  assumes "Complete_Partial_Order.chain (\<subseteq>) X"
+  shows "\<exists>B. range B \<subseteq> X \<and> (\<Union> X) = (\<Union> (B ` (UNIV :: nat set))) \<and> incseq B"
+proof -
+  obtain X' and I :: "nat set" where bij:"bij_betw X' I X"
+    using countableE_bij[OF assms(1)] by auto
+
+  define J where "J = {j \<in> I. \<not>(\<exists>k\<in>I. k < j \<and> X' j \<subseteq> X' k)}"
+
+  have "\<Union>(X' ` (I \<inter> {..<n})) \<subseteq> \<Union>(X' ` (J \<inter> {..<n}))"  for n
+  proof (induction n)
+    case 0
+    then show ?case by auto
+  next
+    case (Suc n)
+    consider (a) "n \<in> I \<and> n \<in> J" | (b) "n \<in> I \<and> n \<notin> J" | (c) "n \<notin> I \<and> n \<notin> J"
+      unfolding J_def by auto
+    thus ?case
+    proof (cases)
+      case a
+      hence "I \<inter> {..<Suc n} = insert n (I \<inter> {..<n})" "J \<inter> {..<Suc n} = insert n (J \<inter> {..<n})"
+        by auto
+      thus ?thesis using Suc image_insert Union_insert by auto
+    next
+      case b
+      hence 1:"I \<inter> {..<Suc n} = insert n (I \<inter> {..<n})" "J \<inter> {..<Suc n} = J \<inter> {..<n}"
+        by (auto simp add: lessThan_Suc)
+      obtain k where "k < n" "k \<in> I" "X' n \<subseteq> X' k"
+        using b unfolding J_def by auto
+      hence "X' n \<subseteq> \<Union> (X' ` (I \<inter> {..<n}))" by auto
+      hence "X' n \<subseteq> \<Union> (X' ` (J \<inter> {..<n}))" using Suc by auto
+      thus ?thesis using Suc unfolding 1 image_insert Union_insert by auto
+    next
+      case c
+      hence "I \<inter> {..<Suc n} = (I \<inter> {..<n})" "J \<inter> {..<Suc n} = (J \<inter> {..<n})"
+        by (auto simp add: lessThan_Suc)
+      then show ?thesis using Suc by auto
+    qed
+  qed
+  hence "\<Union>(X' ` I) \<subseteq> \<Union>(X' ` J)" by blast
+  moreover have "\<Union>(X' ` J) \<subseteq> \<Union>(X' ` I)"
+    by (intro Union_mono image_mono) (auto simp:J_def)
+  ultimately have 2:"\<Union>(X' ` J) = \<Union>(X' ` I)" by simp
+
+  have 3:"X' j1 \<subseteq> X' j2" if "j1 \<in> J" "j2 \<in> J" "j1 < j2" for j1 j2
+  proof -
+    have "j1 \<in> I" using that(1) unfolding J_def by auto
+    hence "\<not>X' j2 \<subseteq> X' j1" using that(2,3) unfolding J_def by auto
+    moreover have "X' j1 \<in> X' ` I"  "X' j2 \<in> X' ` I" 
+      using that(1,2) unfolding J_def by auto
+    hence "X' j1 \<in> X" "X' j2 \<in> X" 
+      unfolding bij_betw_imp_surj_on[OF bij] by auto
+    ultimately show ?thesis
+      using assms(3) unfolding Complete_Partial_Order.chain_def by auto
+  qed
+
+  have "I \<noteq> {}" using bij assms(2) bij_betw_imp_surj_on by auto
+  hence "Inf I \<in> I \<and> (\<forall>i \<in> I. Inf I \<le> i)"
+    by (intro conjI ballI Inf_nat_def1 wellorder_Inf_le1) simp_all
+  hence "Inf I \<in> J" unfolding J_def by auto
+  hence "J \<noteq> {}" by auto
+  then obtain f :: "nat \<Rightarrow> nat" where f_def: "f ` UNIV = J" "mono f"
+    using countable_mono_enum by blast
+
+  have "\<Union> ((X' \<circ> f) ` UNIV) = \<Union> X"
+    unfolding image_comp[symmetric] f_def(1) 2 bij_betw_imp_surj_on[OF bij] by simp
+  moreover have "range (X' \<circ> f) \<subseteq> X"
+    unfolding image_comp[symmetric] f_def(1) bij_betw_imp_surj_on[OF bij, symmetric] 
+    by (intro image_mono) (auto simp:J_def) 
+  moreover have "mono_on (f ` UNIV) X'"
+    unfolding f_def(1) using 3 by (intro mono_onI) fastforce
+  hence "mono (X' \<circ> f)"
+    using f_def(2) unfolding mono_on_def by auto
+  ultimately show ?thesis
+    by (intro exI[where x="X' \<circ> f"]) auto
+qed
+
+lemma (in prob_space) emeasure_chain:
+  assumes "countable X" "X \<noteq> {}"
+  assumes "X \<subseteq> sets M"
+  assumes "Complete_Partial_Order.chain (\<subseteq>) X"
+  shows "emeasure M (\<Union> X) = (SUP x \<in> X. emeasure M x)" (is "?L = ?R")
+proof -
+  obtain B where B: "range B \<subseteq> X" "(\<Union> X) = (\<Union> (B ` (UNIV :: nat set)))" "incseq B"
+    using countable_chain_incseq[OF assms(1,2,4)] by auto
+
+  have "?L = emeasure M (\<Union> (B ` UNIV))"
+    unfolding B by simp
+  also have "... = (SUP n. emeasure M (B n))"
+    using B(1) assms(3) by (intro SUP_emeasure_incseq[symmetric] B(3)) simp
+  also have "... \<le> ?R"
+    using B(1) emeasure_le_1
+    by (intro cSup_subset_mono bdd_aboveI[where M="1"]) auto
+  finally have "?L \<le> ?R" by simp
+  moreover have " emeasure M x \<le> emeasure M (\<Union> X)" if "x \<in> X" for x
+    using that assms(1,3) by (intro emeasure_mono) auto
+  hence "?L \<ge> ?R"
+    using assms(2) by (intro cSup_least) auto
+  ultimately show ?thesis by auto
+qed
+
+
 text \<open>Stream version of @{term "prefix"}\<close>
 
 definition sprefix where "sprefix xs ys = (stake (length xs) ys = xs)"
+
+lemma sprefix_iff: "sprefix x y \<longleftrightarrow> (\<forall>i < length x. y !! i = x ! i)" (is "?L \<longleftrightarrow> ?R")
+proof -
+  have "?L \<longleftrightarrow> stake (length x) y = x"
+    unfolding sprefix_def by simp
+  also have "... \<longleftrightarrow> (\<forall>i < length x . (stake (length x) y) ! i = x ! i)"
+    by (simp add: list_eq_iff_nth_eq)
+  also have "... \<longleftrightarrow> ?R"
+    by (intro all_cong) simp
+  finally show ?thesis by simp
+qed
+
 
 text \<open>Stream version of @{thm [source] prefix_length_prefix}\<close>
 
@@ -114,27 +294,6 @@ qed
 lemma restr_empty_eq: "restrict_space M {} = restrict_space N {}"
   by (intro measure_eqI) (auto simp add:sets_restrict_space)
 
-(*
-lemma (in pair_sigma_finite) pair_measure_eqI:
-  assumes "sets N = sets (M1 \<Otimes>\<^sub>M M2)"
-  assumes "\<And>A B. A \<in> sets M1 \<Longrightarrow> B \<in> sets M2 \<Longrightarrow> emeasure (M1 \<Otimes>\<^sub>M M2) (A \<times> B) = emeasure N (A \<times> B)"
-  shows "M1 \<Otimes>\<^sub>M M2 = N"
-proof -
-  note 0 = Int_stable_pair_measure_generator[of M1 M2]
-
-  have 1:"{a \<times> b |a b. a \<in> sets M1 \<and> b \<in> sets M2} \<subseteq> Pow (space M1 \<times> space M2)"
-    by (intro subsetI PowI iffD2[OF mem_Times_iff] conjI) (auto intro!:subsetD[OF sets.sets_into_space])
-
-  obtain F where F:"range F \<subseteq> {A \<times> B |A B. A \<in> sets M1 \<and> B \<in> sets M2}"
-    "\<Union> (range F) = space M1 \<times> space M2" "\<And>i. emeasure (M1 \<Otimes>\<^sub>M M2) (F i) \<noteq> \<infinity>" and "incseq F"
-    using  sigma_finite_up_in_pair_measure_generator by auto
-
-  show ?thesis
-    using assms(2)
-    by (intro measure_eqI_generator_eq[OF 0 1 _ _ _ F]) (auto simp add:sets_pair_measure assms(1))
-qed
-*)
-
 lemma (in sigma_finite_measure) restrict_space_pair_lift':
   assumes "sigma_finite_measure A"
   assumes "A' \<in> sets A"
@@ -148,6 +307,23 @@ proof -
     sorry
 qed
 
+lemma (in prob_space) distr_stream_space_snth [simp]:
+  assumes "sets M = sets N"
+  shows   "distr (stream_space M) N (\<lambda>xs. snth xs n) = M"
+proof -
+  have "distr (stream_space M) N (\<lambda>xs. snth xs n) = distr (stream_space M) M (\<lambda>xs. snth xs n)"
+    by (rule distr_cong) (use assms in auto)
+  also have "\<dots> = distr (Pi\<^sub>M UNIV (\<lambda>i. M)) M (\<lambda>f. f n)"
+    by (subst stream_space_eq_distr, subst distr_distr) (auto simp: to_stream_def o_def)
+  also have "\<dots> = M"
+    by (intro distr_PiM_component prob_space_axioms) auto
+  finally show ?thesis .
+qed
+
+lemma (in prob_space) distr_stream_space_shd [simp]:
+  assumes "sets M = sets N"
+  shows   "distr (stream_space M) N shd = M"
+  using distr_stream_space_snth[OF assms, of 0] by (simp del: distr_stream_space_snth)
 
 lemma (in sigma_finite_measure) restrict_space_pair_lift:
   assumes "A' \<in> sets A"
@@ -256,6 +432,9 @@ lemma space_coin_space: "space \<B> = UNIV"
 interpretation coin_space: prob_space coin_space
   unfolding coin_space_def
   by (intro prob_space.prob_space_stream_space prob_space_measure_pmf)
+
+lemma distr_shd: "distr \<B> \<D> shd = pmf_of_set UNIV"
+  using coin_space.distr_stream_space_shd unfolding coin_space_def  by auto
 
 lemma append_measurable:
   "(\<lambda>bs. x @- bs) \<in> \<B> \<rightarrow>\<^sub>M \<B>"
