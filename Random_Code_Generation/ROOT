@@ -3,8 +3,9 @@ chapter AFP
 session Random_Code_Generation (AFP) = "HOL-Probability" +
   options [timeout = 1200]
   theories
-    Standard_PMFs
-    Sample_PMF
-    Random_Stream_Monad
+    Basic_Randomized_Algorithms
+    Coin_Space
+    Coin_Space_Topology
+    Random_Monad
   document_files
     "root.tex"
