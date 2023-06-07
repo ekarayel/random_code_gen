@@ -1,4 +1,4 @@
-theory Consumption_SPMF
+theory Tracking_SPMF
   imports Tracking_Randomized_Algorithm
 begin
 
@@ -41,6 +41,9 @@ definition consumption_real :: "'a rspmf \<Rightarrow> ennreal pmf"
 definition expected_consumption :: "'a rspmf \<Rightarrow> ennreal"
   where "expected_consumption p = (\<integral>\<^sup>+x. x \<partial>(consumption_real p))"
 
+definition expected_coin_usage_of_ra where 
+  "expected_coin_usage_of_ra p = \<integral>\<^sup>+x. x \<partial>(map_pmf ennreal_of_enat (coin_usage_of_ra p))"
+
 definition result :: "'a rspmf \<Rightarrow> 'a spmf"
   where "result = map_spmf fst"
 
@@ -48,6 +51,11 @@ lemma consumption_alt_def:
   "consumption p = map_pmf (\<lambda>x. case x of None \<Rightarrow> \<infinity> | Some y \<Rightarrow> enat y) (map_spmf snd p)"
   unfolding consumption_def map_pmf_comp map_option_case 
   by (metis enat_def infinity_enat_def option.case_eq_if option.sel)
+
+lemma consumption_bind_return:
+  "consumption (bind_rspmf f (\<lambda>x. return_rspmf (g x))) = (consumption f)"
+  unfolding bind_rspmf_def return_rspmf_def consumption_alt_def map_spmf_bind_spmf
+  by (simp add:comp_def case_prod_beta map_spmf_conv_bind_spmf)
 
 lemma consumption_mono:
   assumes "ord_rspmf p q"
@@ -298,7 +306,7 @@ lemma spmf_of_rspmf:
   by (simp add: untrack_coin_use spmf_of_ra_map_ra[symmetric])
 
 lemma consumption_correct:
-  "consumption (rspmf_of_ra p) = map_pmf (case_option \<infinity> enat) (track_ra p)" (is "?L = ?R")
+  "consumption (rspmf_of_ra p) = coin_usage_of_ra p" (is "?L = ?R")
 proof -
   let ?p = "Rep_random_alg p"
 
@@ -314,15 +322,20 @@ proof -
   also have "... = distr \<B> \<D> (\<lambda>x. consumed_bits ?p x)"
     by (intro arg_cong[where f="distr \<B> \<D>"] ext)
      (auto simp:consumed_bits_inf_iff[OF rep_rand_alg] split:bind_split)
-  also have "... = measure_pmf (track_ra p)"
-    unfolding track_ra.rep_eq track_rm_def by simp
-  finally have "measure_pmf (map_spmf snd (rspmf_of_ra p)) = measure_pmf (track_ra p)"
+  also have "... = measure_pmf (coin_usage_of_ra_aux p)"
+    unfolding coin_usage_of_ra_aux.rep_eq used_bits_distr_def by simp
+  finally have "measure_pmf (map_spmf snd (rspmf_of_ra p)) = measure_pmf (coin_usage_of_ra_aux p)"
     by simp
-  hence 0:"map_spmf snd (rspmf_of_ra p) = track_ra p"
+  hence 0:"map_spmf snd (rspmf_of_ra p) = coin_usage_of_ra_aux p"
     using measure_pmf_inject by auto
   show ?thesis
-    unfolding consumption_def 0[symmetric] map_pmf_comp 
+    unfolding consumption_def 0[symmetric] coin_usage_of_ra_def map_pmf_comp 
     by (intro map_pmf_cong) (auto split:option.split)
 qed
+
+lemma expected_consumption_correct:
+  "expected_consumption (rspmf_of_ra p) = expected_coin_usage_of_ra p"
+  unfolding expected_consumption_def consumption_real_def consumption_correct 
+    expected_coin_usage_of_ra_def by simp
 
 end

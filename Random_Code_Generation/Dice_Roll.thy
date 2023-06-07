@@ -314,7 +314,7 @@ proof -
     by (intro eq_iff_ord_spmf[symmetric]) auto
 qed
 
-lemma dice_roll_correct:
+theorem dice_roll_correct:
   assumes "n > 0"
   shows 
     "result (dice_roll_rspmf n) = spmf_of_set {..<n}" (is "?L = ?R")
@@ -336,8 +336,8 @@ proof -
 qed
 
 lemma dice_roll_consumption_bound:
-  assumes "n > (0::nat)"
-  shows "measure (consumption (drs_rspmf 0 n)) {x. x > enat k} \<le> real n/2^k" (is "?L \<le> ?R")
+  assumes "n > 0"
+  shows "measure (consumption (dice_roll_rspmf n)) {x. x > enat k } \<le> real n/2^k" (is "?L \<le> ?R")
 proof -
   define h where "h = real n/2^k"
   define f where "f l = (if \<lfloor>l*h\<rfloor>=\<lceil>(l+1)*h\<rceil>-1 then Some (\<lfloor>l*h\<rfloor>,k) else None)" for l :: nat
@@ -359,7 +359,9 @@ proof -
     finally show ?thesis by simp
   qed
 
-  have "?L \<le> measure (consumption (map_pmf f (coins k))) {x. x > enat k}"
+  have "?L = measure (consumption (drs_rspmf 0 n)) {x. x > enat k}"
+    unfolding dice_roll_rspmf_def consumption_bind_return by simp
+  also have "... \<le> measure (consumption (map_pmf f (coins k))) {x. x > enat k}"
     unfolding f_def 0 
     by (intro consumption_mono_rev dice_roll_step_rspmf_approx h_gt_0)
   also have "... = measure (coins k) {l. \<lfloor>real l*h\<rfloor>\<noteq>\<lceil>(real l+1)*h\<rceil>-1}"
@@ -384,14 +386,14 @@ proof -
     by simp
 qed
 
-lemma dice_roll_step_expected_consumption:
+lemma dice_roll_expected_consumption_aux:
   assumes "n > (0::nat)"
-  shows "expected_consumption (drs_rspmf 0 n) \<le> log 2 n + 2" (is "?L \<le> ?R")
+  shows "expected_consumption (dice_roll_rspmf n) \<le> log 2 n + 2" (is "?L \<le> ?R")
 proof -
   define k0 where "k0 = nat \<lceil>log 2 n\<rceil>"
   define \<delta> where "\<delta> = log 2 n - \<lceil>log 2 n\<rceil>"
 
-  have 0: "ennreal (measure (consumption (drs_rspmf 0 n)) {x. x > enat k}) \<le> 
+  have 0: "ennreal (measure (consumption (dice_roll_rspmf n)) {x. x > enat k}) \<le> 
     ennreal (min (real n/2^k) 1)" (is "?L1 \<le> ?R1") for k
     by (intro iffD2[OF ennreal_le_iff] min.boundedI dice_roll_consumption_bound[OF assms]) auto
 
@@ -422,7 +424,7 @@ proof -
     using that convex_onD[OF twop_conv, where x="0" and y="1" and t="x"]
     by (simp add:algebra_simps)
 
-  have "?L = (\<Sum>k. ennreal (measure (consumption (drs_rspmf 0 n)) {x. x > enat k}))"
+  have "?L = (\<Sum>k. ennreal (measure (consumption (dice_roll_rspmf n)) {x. x > enat k}))"
     unfolding expected_consumption by simp
   also have "... \<le> (\<Sum>k. ennreal (min (real n/2^k) 1))"
     by (intro suminf_le summableI 0)
@@ -453,5 +455,20 @@ proof -
   finally show ?thesis
     by simp
 qed
+
+theorem dice_roll_coin_usage:
+  assumes "n > (0::nat)"
+  shows "expected_coin_usage_of_ra (dice_roll_ra n) \<le> log 2 n + 2" (is "?L \<le> ?R")
+proof -
+  have "?L = expected_consumption (rspmf_of_ra (dice_roll_ra n))"
+    unfolding expected_consumption_correct[symmetric] by simp
+  also have "... = expected_consumption (dice_roll_rspmf n)"
+    unfolding dice_roll_ra_rspmf by simp
+  also have "... \<le> ?R"
+    by (intro dice_roll_expected_consumption_aux assms)
+  finally show ?thesis
+    by simp
+qed
+
 
 end

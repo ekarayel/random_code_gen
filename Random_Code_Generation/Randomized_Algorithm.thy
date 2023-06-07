@@ -1,5 +1,5 @@
 theory Randomized_Algorithm
-  imports Random_Monad
+  imports Randomized_Algorithm_Internal
 begin
 
 lemma pmf_eq_iff_le:
@@ -93,28 +93,31 @@ qed
 lift_definition spmf_of_ra :: "'a random_alg \<Rightarrow> 'a spmf" is "measure_rm"
   using measure_rm_is_pmf by metis
 
-lemma track_rm_is_pmf:
+lemma used_bits_distr_is_pmf:
   assumes "wf_random f"
   shows 
-    "prob_space (track_rm f)" (is "?A")
-    "sets (track_rm f) = UNIV" (is "?B")
-    "AE x in track_rm f. measure (track_rm f) {x} \<noteq> 0" (is "?C")
+    "prob_space (used_bits_distr f)" (is "?A")
+    "sets (used_bits_distr f) = UNIV" (is "?B")
+    "AE x in used_bits_distr f. measure (used_bits_distr f) {x} \<noteq> 0" (is "?C")
 proof -
-  show "prob_space (track_rm f)"
-    unfolding track_rm_def
+  show "prob_space (used_bits_distr f)"
+    unfolding used_bits_distr_def
     by (intro coin_space.prob_space_distr consumed_bits_measurable)
-  then interpret p: prob_space "track_rm f"
+  then interpret p: prob_space "used_bits_distr f"
     by auto
   show ?B
-    unfolding track_rm_def by simp
+    unfolding used_bits_distr_def by simp
   have "p.events = UNIV" 
-    unfolding track_rm_def by simp
+    unfolding used_bits_distr_def by simp
   thus ?C
     by (intro iffD2[OF p.AE_support_countable] exI[where x= "UNIV"]) auto
 qed
 
-lift_definition track_ra :: "'a random_alg \<Rightarrow> nat spmf" is "track_rm"
-  using track_rm_is_pmf by auto
+lift_definition coin_usage_of_ra_aux :: "'a random_alg \<Rightarrow> nat spmf" is "used_bits_distr"
+  using used_bits_distr_is_pmf by auto
+
+definition coin_usage_of_ra
+  where "coin_usage_of_ra p = map_pmf (case_option \<infinity> enat) (coin_usage_of_ra_aux p)"
 
 end
 

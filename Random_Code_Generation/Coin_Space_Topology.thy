@@ -5,16 +5,16 @@ theory Coin_Space_Topology
     "HOL-Probability.Discrete_Topology"
 begin
 
-lemma stream_eq_iff: 
-  assumes "\<And>i. x !! i = y !! i"
-  shows "x = y"
-proof -
-  have "x = smap id x"
-    by (simp add: stream.map_id)
-  also have "... = y"
-    using assms unfolding smap_alt by auto
-  finally show ?thesis by simp
-qed
+text \<open>To express continuity and topological properties of coin space, we rely on the existing
+natural topology on @{typ "nat \<Rightarrow> bool discrete"}. For that purpose, we define a bijection
+between @{typ "bool stream"} and push forward the measure from @{term "\<B>"}.
+
+It turns out that the measure is with the given topology a Radon-measure, which we need to
+apply $\tau$-additivity.
+
+An alternative would have been to pull-back the product topology into @{term "\<B>"} but that would
+introduce topology instances on @{typ "'a stream"} which may not be desirable/conflict with other
+interpretations.\<close>
 
 definition from_coins :: "bool stream \<Rightarrow> (nat \<Rightarrow> bool discrete)" 
   where "from_coins s i = discrete (s !! i)"
@@ -138,6 +138,9 @@ proof -
   thus ?thesis
     by (intro at_least_borelI[OF K_top_basis K_countable] assms) auto
 qed
+
+text \<open>This the upper topology on @{typ "'a option"} with the natural partial order on 
+@{typ "'a option"}.\<close>
 
 definition option_ud :: "'a option topology"
   where "option_ud = topology (\<lambda>S. S=UNIV \<or> None \<notin> S)"

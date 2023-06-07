@@ -3,6 +3,15 @@ theory Coin_Space
     "HOL-Probability.Probability" 
 begin
 
+lemma stream_eq_iff: 
+  assumes "\<And>i. x !! i = y !! i"
+  shows "x = y"
+proof -
+  have "x = smap id x" by (simp add: stream.map_id)
+  also have "... = y" using assms unfolding smap_alt by auto
+  finally show ?thesis by simp
+qed
+
 text \<open>Stream version of @{term "prefix"}\<close>
 
 definition sprefix where "sprefix xs ys = (stake (length xs) ys = xs)"
@@ -126,19 +135,6 @@ qed
 lemma restr_empty_eq: "restrict_space M {} = restrict_space N {}"
   by (intro measure_eqI) (auto simp add:sets_restrict_space)
 
-lemma (in sigma_finite_measure) restrict_space_pair_lift':
-  assumes "sigma_finite_measure A"
-  assumes "A' \<in> sets A"
-  shows "restrict_space A A' \<Otimes>\<^sub>M M = restrict_space (A \<Otimes>\<^sub>M M) (A' \<times> space M)" (is "?L = ?R")
-proof -
-
-
-
-  show ?thesis
-    apply (intro pair_measure_eqI)
-    sorry
-qed
-
 lemma (in prob_space) distr_stream_space_snth [simp]:
   assumes "sets M = sets N"
   shows   "distr (stream_space M) N (\<lambda>xs. snth xs n) = M"
@@ -234,8 +230,6 @@ proof -
     by (intro measure_eqI) auto
 qed
 
-
-
 text \<open>Measure spaces and notation for them:\<close>
 
 abbreviation discrete_sigma_algebra 
@@ -293,138 +287,22 @@ proof -
     unfolding coin_space_def by (intro measurable_stream_space2) auto
 qed
 
-lemma bool_list_set:
-  "card {xs :: bool list. length xs = k} = 2^k"
-  "{xs :: bool list. length xs = k} \<noteq> {}"
-  "finite {xs :: bool list. length xs = k}"
-proof -
-  have "card {xs :: bool list. length xs = k} = card {xs. set xs \<subseteq> (UNIV::bool set)\<and>length xs = k}"
-    by simp
-  also have "... = card (UNIV::bool set) ^ k"
-    by (intro card_lists_length_eq) auto
-  finally show "card {xs :: bool list. length xs = k} = 2^k" by simp
-  hence "card {xs :: bool list. length xs = k} \<noteq> 0"
-    by simp
-  thus "{xs :: bool list. length xs = k} \<noteq> {}" "finite {xs :: bool list. length xs = k}"
-    unfolding card_eq_0_iff by auto
-qed
-
-lemma split_coin_space:
-  "distr (pmf_of_set {xs. length xs = k} \<Otimes>\<^sub>M \<B>) \<B> (\<lambda>(x,y). x@-y) = \<B>"
-  (is "?L = ?R")
-proof (rule measure_eqI)
-  show "sets ?L = sets ?R" by simp
-next
-  fix A assume "A \<in> sets ?L"
-
-  hence a:"A \<in> sets coin_space"
-    by simp
-
-  have 0: "(\<lambda>(x, y). x @- y) \<in> pmf_of_set {xs. length xs = k} \<Otimes>\<^sub>M coin_space \<rightarrow>\<^sub>M coin_space"
-    using append_measurable by measurable
-
-  have 1:"{bs. x @- bs \<in> A} \<in> sets coin_space" for x
-    using a append_measurable unfolding measurable_def space_coin_space vimage_def by simp
-
-  have "{x. fst x @- snd x \<in> A} =
-    (\<lambda>(x, y). x @- y) -` A \<inter> space (pmf_of_set {xs. length xs = k} \<Otimes>\<^sub>M coin_space)"
-    unfolding space_pair_measure by (simp add:space_coin_space vimage_def case_prod_beta)
-  also have "... \<in> sets (pmf_of_set {xs. length xs = k} \<Otimes>\<^sub>M coin_space)"
-    by (intro measurable_sets[OF 0] a)
-  finally have 2:"{x. fst x @- snd x \<in> A} \<in> sets (pmf_of_set {xs. length xs = k} \<Otimes>\<^sub>M coin_space)"
-    by simp
-
-  have "emeasure ?L A = emeasure (pmf_of_set {xs. length xs = k} \<Otimes>\<^sub>M coin_space){x. fst x@-snd x\<in>A}"
-    using 0 a by (subst emeasure_distr)
-      (simp_all add:space_pair_measure space_coin_space vimage_def case_prod_beta)
-  also have "... =
-    \<integral>\<^sup>+ x. emeasure coin_space (Pair x -` {x. fst x @- snd x \<in> A}) \<partial>pmf_of_set {xs. length xs = k}"
-    using 2 by (intro coin_space.emeasure_pair_measure_alt)
-  also have "... = \<integral>\<^sup>+ x. emeasure coin_space {bs. x @- bs \<in> A} \<partial>pmf_of_set {xs. length xs = k}"
-    unfolding vimage_def by simp
-  also have "... = (\<Sum>x\<in>set_pmf (pmf_of_set {xs. length xs = k}).
-    emeasure coin_space {bs. x @- bs \<in> A} * ennreal (pmf (pmf_of_set {xs. length xs = k}) x))"
-    using bool_list_set by (intro nn_integral_measure_pmf_finite) (simp_all)
-  also have "... = (\<Sum>xs| length xs = k. emeasure coin_space {bs. xs @- bs \<in> A} * ennreal (1/2^k))"
-    using bool_list_set by (intro sum.cong set_pmf_of_set) simp_all
-  also have "... = emeasure ?R A"
-  proof (induction k)
-    case 0
-    then show ?case by (simp_all)
-  next
-    case (Suc k)
-    have "length y = Suc k \<Longrightarrow> take k y @ [y ! k] = y" for y :: "bool list"
-      by (metis lessI less_eq_Suc_le take_Suc_conv_app_nth take_all)
-
-    hence "(\<Sum>xs | length xs = Suc k. emeasure coin_space {bs. xs @- bs \<in> A}* ennreal (1/2^Suc k))=
-      (\<Sum>x|length (fst x)=k. emeasure coin_space {bs. (fst x@[snd x])@-bs\<in>A}*ennreal (1/2^Suc k))"
-      by (intro sum.reindex_bij_betw[symmetric] bij_betwI[where g="(\<lambda>x. (take k x, x!k))"]) auto
-    also have "... = (\<Sum>xs | length xs = k.
-      (\<Sum>x\<in>UNIV. emeasure coin_space {bs. (xs@[x]) @- bs \<in> A} * ennreal ((1/2) * (1/2^k))))"
-      unfolding sum.cartesian_product by (intro sum.cong) auto
-    also have "... = (\<Sum>xs | length xs = k.
-      (\<Sum>x\<in>UNIV. emeasure coin_space {bs. (xs@[x]) @- bs \<in> A}) * inverse 2 * ennreal (1/2^k))"
-      by (subst ennreal_mult') (simp_all add:sum_distrib_right sum_distrib_left algebra_simps)
-    also have "... = (\<Sum>xs | length xs = k.
-      (\<Sum>x\<in>UNIV. emeasure coin_space {xa. xs @- x ## xa \<in> A}) * inverse 2 * ennreal (1 / 2 ^ k))"
-      by (intro sum.cong arg_cong2[where f="(*)"] refl arg_cong2[where f="emeasure"]) simp_all
-    also have "... = (\<Sum>xs | length xs = k.
-      (\<integral>\<^sup>+ t. emeasure coin_space {x. xs @- t ## x \<in> A} \<partial>pmf_of_set UNIV) * ennreal (1 / 2 ^ k))"
-      by (subst nn_integral_measure_pmf_finite) (simp_all add:sum_distrib_right)
-    also have "... = (\<Sum>xs | length xs = k. (\<integral>\<^sup>+ t. emeasure coin_space {x \<in> space coin_space.
-          t ## x \<in> {bs. xs @- bs \<in> A}} \<partial>pmf_of_set UNIV) * ennreal (1 / 2 ^ k))"
-      unfolding space_coin_space by simp
-    also have "... = (\<Sum>xs|length xs=k. emeasure coin_space {bs. xs @- bs \<in> A} * ennreal (1/2^k))"
-      using 1 unfolding coin_space_def by (intro sum.cong arg_cong2[where f="(*)"]
-          prob_space.emeasure_stream_space[symmetric] prob_space_measure_pmf refl) auto
-    also have "... = emeasure ?R A"
-      by (intro Suc)
-    finally show ?case by simp
-  qed
-  finally show "emeasure ?L A = emeasure ?R A"
-    by simp
-qed
-
-lemma distr_stake:
-  "distr \<B> \<D> (stake n) = pmf_of_set {bs. length bs = n}" (is "?L = ?R")
-proof -
-  have 1: "stake n \<in> coin_space \<rightarrow>\<^sub>M \<D>"
-    unfolding coin_space_def by simp
-
-  have "{x \<in> space (?R \<Otimes>\<^sub>M coin_space). (stake n \<circ> (\<lambda>(x, y). x @- y)) x = fst x} =
-    (\<lambda>(x,y). stake n (x @- y) = x) -` {True} \<inter> space (?R \<Otimes>\<^sub>M coin_space)"
-    by (auto simp add:set_eq_iff comp_def)
-  also have "... \<in> sets (?R \<Otimes>\<^sub>M coin_space)"
-    using append_measurable 1 by (intro measurable_sets[where A="\<D>"]) auto
-  finally have 2: "{x \<in> space (?R \<Otimes>\<^sub>M coin_space). (stake n \<circ> (\<lambda>(x, y). x @- y)) x = fst x} \<in>
-    sets (?R \<Otimes>\<^sub>M coin_space)"
-    by simp
-
-  have 0: "AE x in ?R \<Otimes>\<^sub>M coin_space. (stake n \<circ> (\<lambda>(x, y). x @- y)) x = fst x"
-    using  coin_space.sigma_finite_measure bool_list_set
-    by (intro pair_sigma_finite.AE_pair_measure AE_pmfI 2 AE_I2)
-     (simp_all add:pair_sigma_finite_def measure_pmf.sigma_finite_measure_axioms)
-
-  have "?L = distr (distr (?R  \<Otimes>\<^sub>M coin_space) coin_space (\<lambda>(x,y). x@-y)) \<D> (stake n)"
-    by (subst split_coin_space)  simp
-  also have "... = distr (?R \<Otimes>\<^sub>M coin_space) \<D> (stake n \<circ> (\<lambda>(x, y). x @- y))"
-    using append_measurable 1 by (intro distr_distr) simp_all
-  also have "... = distr (?R \<Otimes>\<^sub>M coin_space) \<D> fst"
-    using append_measurable 0 1
-    by (intro distr_cong_AE refl measurable_comp[where N="coin_space"]) simp_all
-  also have "... = distr (?R \<Otimes>\<^sub>M coin_space) ?R fst"
-    by (intro distr_cong refl) simp
-  also have "... = ?R"
-    by (intro coin_space.distr_pair_fst)
-  finally show ?thesis
-    by simp
-qed
+lemma to_stream_comb_seq_eq:
+  "to_stream (comb_seq n x y) = stake n (to_stream x) @- to_stream y" 
+  unfolding comb_seq_def to_stream_def
+  by (intro stream_eq_iff) simp
 
 lemma branch_coin_space:
   "(\<lambda>(x, y). stake n x @- y) \<in> \<B> \<Otimes>\<^sub>M \<B> \<rightarrow>\<^sub>M \<B>"
   "distr (\<B> \<Otimes>\<^sub>M \<B>) \<B> (\<lambda>(x,y). stake n x@-y) = \<B>" (is "?L = ?R")
 proof -
-  have 1:"stake n \<in> \<B> \<rightarrow>\<^sub>M \<D>"
+  let ?M = "measure_pmf (pmf_of_set (UNIV :: bool set))"
+  let ?S = "(PiM UNIV (\<lambda>_. ?M))"
+
+  interpret S: sequence_space "?M"
+    by standard
+
+  have "stake n \<in> \<B> \<rightarrow>\<^sub>M \<D>"
     unfolding coin_space_def using measurable_stake by simp
   hence "case_prod (@-) \<circ> map_prod (stake n) id \<in> \<B> \<Otimes>\<^sub>M \<B> \<rightarrow>\<^sub>M \<B>"
     using append_measurable
@@ -432,17 +310,33 @@ proof -
   thus 0:"(\<lambda>(x, y). stake n x @- y) \<in> \<B> \<Otimes>\<^sub>M \<B> \<rightarrow>\<^sub>M \<B>"
     by (simp add:comp_def map_prod_def case_prod_beta)
 
-  have "?L = distr (distr (\<B> \<Otimes>\<^sub>M \<B>) (\<D> \<Otimes>\<^sub>M \<B>) (map_prod (stake n) id)) \<B> (\<lambda>(x,y). x@-y)"
-    using append_measurable 1
-    by (subst distr_distr) (auto intro!:map_prod_measurable simp:comp_def case_prod_beta')
-  also have "... = distr (distr \<B> \<D> (stake n) \<Otimes>\<^sub>M distr \<B> \<B> id) \<B> (\<lambda>(x,y). x@-y)"
-    using 1 coin_space.sigma_finite_measure
-    by (subst pair_measure_distr) (simp_all add:map_prod_def id_def)
-  also have "... = distr (pmf_of_set {xs. length xs = n} \<Otimes>\<^sub>M \<B>)  \<B> (\<lambda>(x,y). x@-y)"
-    by (subst distr_stake) (simp add:id_def)
-  also have "... = \<B>"
-    by (intro split_coin_space)
-  finally show "?L = ?R" 
+  have 2: "to_stream \<in> ?S \<rightarrow>\<^sub>M \<B>"
+    unfolding coin_space_def using measurable_to_stream by simp
+
+  have coin_space_eq_distr: "\<B> = (distr ?S \<B> to_stream)"
+    unfolding coin_space_def using stream_space_eq_distr by auto
+
+  have "?L = distr (distr ?S \<B> to_stream \<Otimes>\<^sub>M distr ?S \<B> to_stream) \<B> (\<lambda>(x,y). stake n x@-y)"
+    by (subst (1 2) coin_space_eq_distr) simp
+  also have "... = distr (distr (?S \<Otimes>\<^sub>M ?S) (\<B> \<Otimes>\<^sub>M \<B>) (\<lambda>(x, y). (to_stream x, to_stream y)))
+     \<B> (\<lambda>(x, y). stake n x @- y)"
+    using prob_space_imp_sigma_finite[OF coin_space.prob_space_axioms]
+    by (intro arg_cong2[where f="(\<lambda>x y. distr x \<B> y)"] pair_measure_distr refl 2)
+     (simp flip:coin_space_eq_distr)  
+  also have "... = distr (?S\<Otimes>\<^sub>M?S) \<B> ((\<lambda>(x, y). stake n x@-y)\<circ>(\<lambda>(x, y). (to_stream x,to_stream y)))"
+    using 2 by (intro distr_distr 0) (simp add: measurable_pair_iff)
+  also have "... = distr (?S\<Otimes>\<^sub>M?S) \<B> ((\<lambda>(x, y). stake n (to_stream x) @- to_stream y))"
+    by (simp add:comp_def case_prod_beta')
+  also have "... = distr (?S\<Otimes>\<^sub>M?S) \<B> (to_stream \<circ> (\<lambda>(x, y). comb_seq n x y))"
+    using to_stream_comb_seq_eq[symmetric]
+    by (intro arg_cong2[where f="(\<lambda>x y. distr x \<B> y)"] refl ext) auto
+  also have "... = distr (distr (?S\<Otimes>\<^sub>M?S) ?S  (\<lambda>(x, y). comb_seq n x y)) \<B> to_stream"
+    by (intro distr_distr[symmetric] measurable_comb_seq 2)
+  also have "... = distr ?S \<B> to_stream"
+    by (subst S.PiM_comb_seq) simp
+  also have "... = ?R"
+    unfolding coin_space_def stream_space_eq_distr[symmetric] by simp
+  finally show "?L = ?R"
     by simp
 qed
 

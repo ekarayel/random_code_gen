@@ -1,4 +1,4 @@
-theory Random_Monad (* Randomized_Algorithm_Internal *)
+theory Randomized_Algorithm_Internal
   imports 
     "HOL-Probability.Probability" 
     "HOL-Library.Extended_Nat"
@@ -331,8 +331,8 @@ qed
 definition consumed_bits where 
   "consumed_bits f bs = map_option length (consumed_prefix f bs)"
 
-definition track_rm :: "'a random_monad \<Rightarrow> nat option measure"
-  where "track_rm f = distr \<B> \<D> (consumed_bits f)"
+definition used_bits_distr :: "'a random_monad \<Rightarrow> nat option measure"
+  where "used_bits_distr f = distr \<B> \<D> (consumed_bits f)"
 
 lemma wf_random_alt2:
   assumes "wf_random f"
