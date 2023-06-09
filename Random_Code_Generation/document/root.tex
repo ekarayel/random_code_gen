@@ -10,17 +10,49 @@
 
 \begin{document}
 
-\title{Code Generation for Randomized Algorithm}
-\author{TODO}
+\title{Executable Randomized Algorithms}
+\author{Manuel Eberl and Emin Karayel}
 \maketitle
 
-\abstract{This library introduces code-generation methods for randomized algorithms modelled
-using probability mass functions. The first strategy works using a syntactic translation using
-customized serialization with a minimal trusted base. The second strategy relies on modelling the
-executable randomized algorithm, parameterized by the random source, directly in Isabelle and
-works without customized serialization.}
+\abstract{In Isabelle randomized algorithms are usually represented using probability mass 
+functions (PMFs), with which it is possible to verify their correctness, in particular properties
+about the distribution of their result. However, that approach does not allow for code-generation.
+In this entry we introduce a new monad for randomized algorithms, for which it is possible to 
+generate code and simultaneously reason about the correctness of the algorithm. The latter works by
+a general order-continuous monad morphism between the newly introduced random monad and PMFs.
+The randomized algorithms can be run, when supplied with a source of randomness modelled using
+an infinite stream of coin flips, which can be generated arbitrarily, for example using a PRG or 
+even a hardware RNG.}
 
 \tableofcontents
+
+\section{Introduction}
+In Isabelle, randomized algorithms are usually represented using probability mass functions (PMFs). 
+(These are distributions on the discrete $\sigma$-algebra, i.e., pure point measures.) That 
+representation allows the verification of the correctness of randomized algorithms, for example
+the expected value of their result, moments or other probabilistic properties. However --- it is not 
+directly possible to execute such a PMF.
+
+In this work, we introduce a representation of randomized algorithms as a monad over an external 
+arbitrary source of random coin flips, modelled using a lazy infinite stream of coin flips. Using
+for example a PRG or some other mechanism, like a hardware RNG to supply the coin flips, the
+generated code for the monad can be executed.
+
+Then we introduce a monad morphism between such algorithms and the corresponding PMF, i.e., the PMF
+representing the distribution of the randomized algorithm under the idealized assumption that the 
+coin flips are independent and unbiased, such that correctness properties can still be verified.
+
+In the presence of loops and possible likelihood of non-termination, the resulting PMF maybe an
+SPMF (a finite measure space with total measure less than $1$). (Internally these are just PMFs over
+the option type, where \verb+None+ represents non-termination.) If a randomized algorithm terminates
+almost surely, the weight of the SPMF will be $1$.
+
+In this context, it is also possible to reason about the number of coin-flips consumed by the
+algorithm. The latter is itself a distribution, where for example the average count of coin-flips
+is represented as the expectation of that distribution. To facilitate the latter, we introduce
+a second monad morphism, between randomized algorithm and a resource monad on top of the SPMF monad.
+Indeed the latter describes the joint-distribution of the result of a randomized algorithm and the 
+number of used coin flips. 
 
 % sane default for proof documents
 \parindent 0pt\parskip 0.5ex

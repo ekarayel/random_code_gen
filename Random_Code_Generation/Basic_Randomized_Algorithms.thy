@@ -3,11 +3,10 @@ theory Basic_Randomized_Algorithms
     Randomized_Algorithm 
     Probabilistic_While.Bernoulli 
     Probabilistic_While.Geometric
+    Permuted_Congruential_Generator
 begin
 
 text \<open>Bernoulli distribution\<close>
-
-declare [[function_internals]]
 
 partial_function (random_alg) bernoulli_ra :: "real \<Rightarrow> bool random_alg" where
   "bernoulli_ra p = do {
@@ -16,6 +15,9 @@ partial_function (random_alg) bernoulli_ra :: "real \<Rightarrow> bool random_al
      else if p < 1 / 2 then bernoulli_ra (2 * p)
      else bernoulli_ra (2 * p - 1)
    }"
+  
+text \<open>This is necessary for running randomized algorithms.\<close>
+declare bernoulli_ra.simps[code]
 
 lemma bernoulli_ra_correct_aux: "ord_spmf (=) (bernoulli x) (spmf_of_ra (bernoulli_ra x))"
 proof (induction arbitrary:x rule:bernoulli.fixp_induct)
@@ -28,7 +30,7 @@ next
 next
   case (3 p)
   thus ?case by (subst bernoulli_ra.simps)
-      (auto intro:ord_spmf_bind_reflI simp:spmf_of_ra_bind spmf_of_ra_coin spmf_of_ra_return)
+      (auto intro:ord_spmf_bind_reflI simp:spmf_of_ra_simps)
 qed
 
 lemma bernoulli_ra_correct: "bernoulli x = spmf_of_ra (bernoulli_ra x)"
@@ -52,6 +54,7 @@ partial_function (random_alg) geometric_ra :: "real \<Rightarrow> nat random_alg
      b \<leftarrow> bernoulli_ra p;
      if b then return_ra 0 else map_ra ((+) 1) (geometric_ra p)
   }"
+declare geometric_ra.simps[code]
 
 lemma geometric_ra_correct: "spmf_of_ra (geometric_ra x) = geometric_spmf x"
 proof -
@@ -77,7 +80,7 @@ fun replicate_spmf :: "nat \<Rightarrow> 'a spmf \<Rightarrow> 'a list spmf"
     "replicate_spmf (Suc n) f = do { xh \<leftarrow> f; xt \<leftarrow> replicate_spmf n f; return_spmf (xh#xt) }"
 
 lemma replicate_ra_correct: "spmf_of_ra (replicate_ra n f) = replicate_spmf n (spmf_of_ra f)"
-  by (induction n) (auto simp :spmf_of_ra_return spmf_of_ra_bind)
+  by (induction n) (auto simp :spmf_of_ra_simps)
 
 lemma replicate_spmf_of_pmf: "replicate_spmf n (spmf_of_pmf f) = spmf_of_pmf (replicate_pmf n f)"
   by (induction n) (simp_all add:spmf_of_pmf_bind)
@@ -91,13 +94,17 @@ lemma
   assumes "p \<in> {0..1}"
   shows "spmf_of_ra (binomial_ra n p) = spmf_of_pmf (binomial_pmf n p)"
 proof -
-  have "spmf_of_ra(replicate_ra n (bernoulli_ra p))=spmf_of_pmf(replicate_pmf n (bernoulli_pmf p))"
+  have "spmf_of_ra (replicate_ra n (bernoulli_ra p))=spmf_of_pmf(replicate_pmf n (bernoulli_pmf p))"
     unfolding replicate_ra_correct bernoulli_ra_correct[symmetric] bernoulli_eq_bernoulli_pmf
     by (simp add:replicate_spmf_of_pmf)
 
   thus ?thesis
     unfolding binomial_pmf_altdef[OF assms] binomial_ra_def
-    by (simp flip:map_spmf_of_pmf add:spmf_of_ra_map_ra)
+    by (simp flip:map_spmf_of_pmf add:spmf_of_ra_map)
 qed
+
+value "run_ra (binomial_ra 10 0.5) (random_bits 42)"
+
+value "run_ra (replicate_ra 20 (bernoulli_ra 0.1)) (random_bits 82)"
 
 end

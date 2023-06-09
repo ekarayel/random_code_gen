@@ -1,6 +1,24 @@
+section \<open>$\tau$-Additivity\<close>
+
 theory Tau_Additivity
   imports "HOL-Analysis.Regularity"
 begin
+
+text \<open>For general countable chains of measurable sets, it is possible to deduce that the supremum
+of the measures of the sets is equal to the measure of the union of the family:
+\[
+  \mu \left( \bigcup{X \in \mathcal X} X \right) = \sup_{X \in \mathcal X} \mu (X)
+\]
+this is shown in @{thm [source] SUP_emeasure_incseq}.
+
+It is possible to generalize that to arbitrary chains
+\footnote{More generally families closed under pairwise unions.} of open sets for some measures 
+without the restriction of countability, such measures are called 
+$\tau$-additive~\cite{fremlin2000}.
+
+In the following this property is derived for measures that are at least borel (i.e. every open
+set is measurable) in a complete second-countable topology. The result is an immediate consequence
+of inner-regularity @{thm [source] inner_regular}.\<close>
 
 definition "op_stable op F = (\<forall>x y. x \<in> F \<and> y \<in> F \<longrightarrow> op x y \<in> F)"
 

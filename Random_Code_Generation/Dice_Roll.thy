@@ -74,39 +74,39 @@ partial_function (random_alg) dice_roll_step_ra :: "real \<Rightarrow> real \<Ri
 
 definition "dice_roll_ra n = map_ra nat (dice_roll_step_ra 0 (of_nat n))"
 
-partial_function (spmf) drs_rspmf :: "real \<Rightarrow> real \<Rightarrow> int rspmf"
-  where "drs_rspmf l h = (
+partial_function (spmf) drs_tspmf :: "real \<Rightarrow> real \<Rightarrow> int tspmf"
+  where "drs_tspmf l h = (
     if \<lfloor>l\<rfloor> = \<lceil>l+h\<rceil>-1 then 
-      return_rspmf \<lfloor>l\<rfloor>
+      return_tspmf \<lfloor>l\<rfloor>
     else 
-      do { b \<leftarrow> coin_rspmf; drs_rspmf (l + (h/2) * of_bool b) (h/2) }
+      do { b \<leftarrow> coin_tspmf; drs_tspmf (l + (h/2) * of_bool b) (h/2) }
     )"
 
-definition "dice_roll_rspmf n = drs_rspmf 0 (of_nat n) \<bind> (\<lambda>x. return_rspmf (nat x))"
+definition "dice_roll_tspmf n = drs_tspmf 0 (of_nat n) \<bind> (\<lambda>x. return_tspmf (nat x))"
 
-lemma drs_rspmf: "drs_rspmf l u = rspmf_of_ra (dice_roll_step_ra l u)"
+lemma drs_tspmf: "drs_tspmf l u = tspmf_of_ra (dice_roll_step_ra l u)"
 proof -
   include lifting_syntax
-  have "((=) ===> (=) ===> rel_rspmf_of_ra) drs_rspmf dice_roll_step_ra"
-    unfolding drs_rspmf_def dice_roll_step_ra_def
+  have "((=) ===> (=) ===> rel_tspmf_of_ra) drs_tspmf dice_roll_step_ra"
+    unfolding drs_tspmf_def dice_roll_step_ra_def
     apply (rule rel_funD[OF curry_transfer])
-    apply (rule fixp_rel_rspmf_of_ra_parametric[OF drs_rspmf.mono dice_roll_step_ra.mono])
+    apply (rule fixp_rel_tspmf_of_ra_parametric[OF drs_tspmf.mono dice_roll_step_ra.mono])
     by transfer_prover
   thus ?thesis
-    unfolding rel_fun_def rel_rspmf_of_ra_def by auto
+    unfolding rel_fun_def rel_tspmf_of_ra_def by auto
 qed
 
-lemma dice_roll_ra_rspmf: "rspmf_of_ra (dice_roll_ra n) = dice_roll_rspmf n"
-  unfolding dice_roll_ra_def dice_roll_rspmf_def map_ra_def rspmf_of_ra_bind rspmf_of_ra_return
-    drs_rspmf by simp
+lemma dice_roll_ra_tspmf: "tspmf_of_ra (dice_roll_ra n) = dice_roll_tspmf n"
+  unfolding dice_roll_ra_def dice_roll_tspmf_def map_ra_def tspmf_of_ra_bind tspmf_of_ra_return
+    drs_tspmf by simp
 
-lemma dice_roll_step_rspmf_lb:
+lemma dice_roll_step_tspmf_lb:
   assumes "h > 0"
-  shows "coin_rspmf \<bind> (\<lambda>b. drs_rspmf (l + (h/2) * of_bool b) (h/2)) \<le>\<^sub>R drs_rspmf l h"
+  shows "coin_tspmf \<bind> (\<lambda>b. drs_tspmf (l + (h/2) * of_bool b) (h/2)) \<le>\<^sub>R drs_tspmf l h"
 proof (cases "\<lfloor>l\<rfloor> = \<lceil>l+h\<rceil>-1")
   case True
-  hence 2:"drs_rspmf l h = return_rspmf \<lfloor>l\<rfloor>" 
-    by (subst drs_rspmf.simps) simp
+  hence 2:"drs_tspmf l h = return_tspmf \<lfloor>l\<rfloor>" 
+    by (subst drs_tspmf.simps) simp
 
   have 0: "\<lfloor>l + h / 2 * of_bool b\<rfloor> = \<lfloor>l\<rfloor>" for b
   proof -
@@ -132,68 +132,68 @@ proof (cases "\<lfloor>l\<rfloor> = \<lceil>l+h\<rceil>-1")
     ultimately show ?thesis by simp
   qed
 
-  have 3:"drs_rspmf (l + (h/2) * of_bool b) (h/2) = return_rspmf \<lfloor>l\<rfloor>" for b
-    using 0 1 by (subst drs_rspmf.simps) simp
+  have 3:"drs_tspmf (l + (h/2) * of_bool b) (h/2) = return_tspmf \<lfloor>l\<rfloor>" for b
+    using 0 1 by (subst drs_tspmf.simps) simp
 
   show ?thesis
-    unfolding 2 3 bind_rspmf_def coin_rspmf_def pair_spmf_alt_def 
-    by (simp add:bind_spmf_const ord_rspmf_map_spmf)
+    unfolding 2 3 bind_tspmf_def coin_tspmf_def pair_spmf_alt_def 
+    by (simp add:bind_spmf_const ord_tspmf_map_spmf)
 next
   case False
   thus ?thesis
-    by (subst drs_rspmf.simps) (auto intro:ord_rspmf_refl)
+    by (subst drs_tspmf.simps) (auto intro:ord_tspmf_refl)
 qed
 
 abbreviation "coins k \<equiv> pmf_of_set {..<(2::nat)^k}"
 
-lemma dice_roll_step_rspmf_expand:
+lemma dice_roll_step_tspmf_expand:
   assumes "h > 0"
-  shows "coins k \<bind> (\<lambda>l. consume k (drs_rspmf (real l*h) h)) \<le>\<^sub>R drs_rspmf 0 (h*2^k)"
+  shows "coins k \<bind> (\<lambda>l. consume k (drs_tspmf (real l*h) h)) \<le>\<^sub>R drs_tspmf 0 (h*2^k)"
   using assms
 proof (induction k arbitrary:h)
   case 0
   have "{..<Suc 0} = {0}" by auto
   then show ?case
-    by (auto intro:ord_rspmf_consume simp:pmf_of_set_singleton bind_return_pmf) 
+    by (auto intro:ord_tspmf_consume simp:pmf_of_set_singleton bind_return_pmf) 
 next
   case (Suc k)
-  have "(coins (k+1) \<bind> (\<lambda>l. consume (k+1) (drs_rspmf (real l*h) h))) = 
-    coins k \<bind> (\<lambda>l. coin_spmf \<bind> (\<lambda>b. consume (k+1) (drs_rspmf (real (2*l+ of_bool b) * h) h)))"
+  have "(coins (k+1) \<bind> (\<lambda>l. consume (k+1) (drs_tspmf (real l*h) h))) = 
+    coins k \<bind> (\<lambda>l. coin_spmf \<bind> (\<lambda>b. consume (k+1) (drs_tspmf (real (2*l+ of_bool b) * h) h)))"
     by (intro combine_spmf_set_coin_spmf[symmetric])
   also have "... = coins k \<bind> (\<lambda>l. consume (k+1) (coin_spmf \<bind> 
-    (\<lambda>b. drs_rspmf (real l* (2*h) + h * of_bool b) h)))"
+    (\<lambda>b. drs_tspmf (real l* (2*h) + h * of_bool b) h)))"
     unfolding consume_def map_spmf_conv_bind_spmf by (simp add:algebra_simps)
-  also have "... = coins k \<bind> (\<lambda>l. consume k (coin_rspmf \<bind> 
-    (\<lambda>b. drs_rspmf (real l* (2*h) + h * of_bool b) h)))"
-    unfolding coin_rspmf_split consume_add by simp
-  also have "... = coins k \<bind> (\<lambda>l. consume k (coin_rspmf \<bind> 
-    (\<lambda>b. drs_rspmf (real l* (2*h) + ((2*h)/2) * of_bool b) ((2*h)/2))))"
+  also have "... = coins k \<bind> (\<lambda>l. consume k (coin_tspmf \<bind> 
+    (\<lambda>b. drs_tspmf (real l* (2*h) + h * of_bool b) h)))"
+    unfolding coin_tspmf_split consume_add by simp
+  also have "... = coins k \<bind> (\<lambda>l. consume k (coin_tspmf \<bind> 
+    (\<lambda>b. drs_tspmf (real l* (2*h) + ((2*h)/2) * of_bool b) ((2*h)/2))))"
     using Suc(2) by simp 
-  also have "... \<le>\<^sub>R coins k \<bind> (\<lambda>l. consume k (drs_rspmf (real l * (2 * h)) (2*h)))"
-    using Suc(2) by (intro ord_rspmf_bind_pmf ord_rspmf_consume_2 dice_roll_step_rspmf_lb) simp
-  also have "... \<le>\<^sub>R drs_rspmf 0 ((2*h)*2^k)"
+  also have "... \<le>\<^sub>R coins k \<bind> (\<lambda>l. consume k (drs_tspmf (real l * (2 * h)) (2*h)))"
+    using Suc(2) by (intro ord_tspmf_bind_pmf ord_tspmf_consume_2 dice_roll_step_tspmf_lb) simp
+  also have "... \<le>\<^sub>R drs_tspmf 0 ((2*h)*2^k)"
     using Suc(2) by (intro Suc(1)) auto
-  also have "... = drs_rspmf 0 (h*2^(k+1))"
+  also have "... = drs_tspmf 0 (h*2^(k+1))"
     unfolding power_add by (simp add:algebra_simps)
   finally show ?case
     by simp
 qed
 
-lemma dice_roll_step_rspmf_approx:
+lemma dice_roll_step_tspmf_approx:
   fixes k :: nat
   assumes "h > (0::real)"
   defines "f \<equiv> (\<lambda>l. if \<lfloor>l*h\<rfloor>=\<lceil>(l+1)*h\<rceil>-1 then Some (\<lfloor>l*h\<rfloor>,k) else None)"
-  shows "map_pmf f (coins k) \<le>\<^sub>R drs_rspmf 0 (h*2^k)" (is "?L \<le>\<^sub>R ?R")
+  shows "map_pmf f (coins k) \<le>\<^sub>R drs_tspmf 0 (h*2^k)" (is "?L \<le>\<^sub>R ?R")
 proof -
   have "?L = coins k \<bind>
-    (\<lambda>l. consume k (if \<lfloor>real l*h\<rfloor>=\<lceil>(l+1)*h\<rceil>-1 then return_rspmf \<lfloor>l*h\<rfloor> else return_pmf None))"
-    unfolding f_def return_rspmf_def consume_def map_pmf_def
+    (\<lambda>l. consume k (if \<lfloor>real l*h\<rfloor>=\<lceil>(l+1)*h\<rceil>-1 then return_tspmf \<lfloor>l*h\<rfloor> else return_pmf None))"
+    unfolding f_def return_tspmf_def consume_def map_pmf_def
     by (simp add:if_distribR if_distrib bind_return_pmf algebra_simps cong:if_cong)
-  also have "... \<le>\<^sub>R coins k \<bind> (\<lambda>l. consume k (drs_rspmf (real l*h) h))"
-    by (subst drs_rspmf.simps, intro ord_rspmf_bind_pmf ord_rspmf_consume_2) 
-      (simp add:ord_rspmf_min ord_rspmf_refl algebra_simps)
-  also have "... \<le>\<^sub>R drs_rspmf 0 (h*2^k)"
-    by (intro dice_roll_step_rspmf_expand assms)
+  also have "... \<le>\<^sub>R coins k \<bind> (\<lambda>l. consume k (drs_tspmf (real l*h) h))"
+    by (subst drs_tspmf.simps, intro ord_tspmf_bind_pmf ord_tspmf_consume_2) 
+      (simp add:ord_tspmf_min ord_tspmf_refl algebra_simps)
+  also have "... \<le>\<^sub>R drs_tspmf 0 (h*2^k)"
+    by (intro dice_roll_step_tspmf_expand assms)
   finally show ?thesis by simp
 qed
 
@@ -201,21 +201,21 @@ lemma dice_roll_step_spmf_approx:
   fixes k :: nat
   assumes "h > (0::real)"
   defines "f \<equiv> (\<lambda>l. if \<lfloor>l*h\<rfloor>=\<lceil>(l+1)*h\<rceil>-1 then Some (\<lfloor>l*h\<rfloor>) else None)"
-  shows "ord_spmf (=) (map_pmf f (coins k)) (result (drs_rspmf 0 (h*2^k)))" 
+  shows "ord_spmf (=) (map_pmf f (coins k)) (result (drs_tspmf 0 (h*2^k)))" 
     (is "ord_spmf _ ?L ?R")
 proof -
   have 0: "?L = result (map_pmf (\<lambda>l. if \<lfloor>l*h\<rfloor>=\<lceil>(l+1)*h\<rceil>-1 then Some (\<lfloor>l*h\<rfloor>,k) else None) (coins k))"
     unfolding result_def map_pmf_comp f_def by (intro map_pmf_cong refl) auto
 
   show ?thesis
-    unfolding 0 using assms result_mono[OF dice_roll_step_rspmf_approx] by simp
+    unfolding 0 using assms result_mono[OF dice_roll_step_tspmf_approx] by simp
 qed   
 
 lemma spmf_dice_roll_step_lb:
   assumes "j < n"
-  shows "spmf (result (drs_rspmf 0 (of_nat n))) (of_nat j) \<ge> 1/n" (is "?L \<ge> ?R")
+  shows "spmf (result (drs_tspmf 0 (of_nat n))) (of_nat j) \<ge> 1/n" (is "?L \<ge> ?R")
 proof (rule ccontr)
-  assume "\<not>(spmf (result (drs_rspmf 0 (of_nat n))) (of_nat j) \<ge> 1/n)"
+  assume "\<not>(spmf (result (drs_tspmf 0 (of_nat n))) (of_nat j) \<ge> 1/n)"
   hence a:"?L < 1/n" by simp
   define k :: nat where "k = nat \<lfloor>2-log 2 (1/n-?L)\<rfloor>"
   define h where "h = real n/2^k"
@@ -277,7 +277,7 @@ proof (rule ccontr)
   also have "... = spmf (map_pmf f (coins k)) j"
     unfolding pmf_map f_def vimage_def 
     by (intro arg_cong2[where f="measure"] refl Collect_cong) auto
-  also have "... \<le> spmf (result (drs_rspmf 0 (h*2^k))) j"
+  also have "... \<le> spmf (result (drs_tspmf 0 (h*2^k))) j"
     unfolding f_def by (intro ord_spmf_eq_leD dice_roll_step_spmf_approx h_gt_0)
   also have "... = ?L"
     unfolding h_def by simp
@@ -287,19 +287,19 @@ qed
 
 lemma dice_roll_correct_aux:
   assumes "n > 0"
-  shows "result (drs_rspmf 0 (of_nat n)) = spmf_of_set {0..<n}"
+  shows "result (drs_tspmf 0 (of_nat n)) = spmf_of_set {0..<n}"
 proof -
-  have "weight_spmf (spmf_of_set {0..<int n}) \<ge> weight_spmf (result (drs_rspmf 0 (of_nat n)))"
+  have "weight_spmf (spmf_of_set {0..<int n}) \<ge> weight_spmf (result (drs_tspmf 0 (of_nat n)))"
     using assms unfolding weight_spmf_of_set 
     by (simp add:lessThan_empty_iff weight_spmf_le_1)
-  moreover have "spmf (spmf_of_set {0..<int n}) x \<le> spmf (result (drs_rspmf 0 (of_nat n))) x" for x
+  moreover have "spmf (spmf_of_set {0..<int n}) x \<le> spmf (result (drs_tspmf 0 (of_nat n))) x" for x
   proof (cases "x < n \<and> x \<ge> 0")
     case True
     hence "spmf (spmf_of_set {0..<int n}) x = 1/n"
       unfolding spmf_of_set by auto
-    also have "... \<le> spmf (result (drs_rspmf 0 (of_nat n))) (of_nat (nat x))"
+    also have "... \<le> spmf (result (drs_tspmf 0 (of_nat n))) (of_nat (nat x))"
       using True by (intro spmf_dice_roll_step_lb) auto
-    also have "... = spmf (result (drs_rspmf 0 (of_nat n))) x" 
+    also have "... = spmf (result (drs_tspmf 0 (of_nat n))) x" 
       using True by (subst of_nat_nat) auto
     finally show ?thesis by simp
   next
@@ -308,7 +308,7 @@ proof -
       unfolding spmf_of_set by auto
     then show ?thesis by simp
   qed  
-  hence "ord_spmf (=) (spmf_of_set {0..<int n}) (result (drs_rspmf 0 (of_nat n)))"
+  hence "ord_spmf (=) (spmf_of_set {0..<int n}) (result (drs_tspmf 0 (of_nat n)))"
     by (intro ord_pmf_increaseI refl) auto
   ultimately show ?thesis
     by (intro eq_iff_ord_spmf[symmetric]) auto
@@ -317,14 +317,14 @@ qed
 theorem dice_roll_correct:
   assumes "n > 0"
   shows 
-    "result (dice_roll_rspmf n) = spmf_of_set {..<n}" (is "?L = ?R")
+    "result (dice_roll_tspmf n) = spmf_of_set {..<n}" (is "?L = ?R")
     "spmf_of_ra (dice_roll_ra n) = spmf_of_set {..<n}"
 proof -
   have bij:"bij_betw nat {0..<int n} {..<n}"
     by (intro bij_betwI[where g="int"]) auto
 
   have "?L = map_spmf nat (spmf_of_set {0..<int n})"
-    unfolding dice_roll_rspmf_def dice_roll_correct_aux[OF assms] result_bind result_return
+    unfolding dice_roll_tspmf_def dice_roll_correct_aux[OF assms] result_bind result_return
       map_spmf_conv_bind_spmf by simp
   also have "... = spmf_of_set (nat ` {0..<int n})"
     by (intro map_spmf_of_set_inj_on inj_onI) auto
@@ -332,12 +332,12 @@ proof -
     using bij_betw_imp_surj_on[OF bij] by (intro arg_cong[where f="spmf_of_set"]) auto 
   finally show "?L = ?R" by simp
   thus "spmf_of_ra (dice_roll_ra n) = ?R"
-    using spmf_of_rspmf dice_roll_ra_rspmf by metis
+    using spmf_of_tspmf dice_roll_ra_tspmf by metis
 qed
 
 lemma dice_roll_consumption_bound:
   assumes "n > 0"
-  shows "measure (consumption (dice_roll_rspmf n)) {x. x > enat k } \<le> real n/2^k" (is "?L \<le> ?R")
+  shows "measure (consumption (dice_roll_tspmf n)) {x. x > enat k } \<le> real n/2^k" (is "?L \<le> ?R")
 proof -
   define h where "h = real n/2^k"
   define f where "f l = (if \<lfloor>l*h\<rfloor>=\<lceil>(l+1)*h\<rceil>-1 then Some (\<lfloor>l*h\<rfloor>,k) else None)" for l :: nat
@@ -359,11 +359,11 @@ proof -
     finally show ?thesis by simp
   qed
 
-  have "?L = measure (consumption (drs_rspmf 0 n)) {x. x > enat k}"
-    unfolding dice_roll_rspmf_def consumption_bind_return by simp
+  have "?L = measure (consumption (drs_tspmf 0 n)) {x. x > enat k}"
+    unfolding dice_roll_tspmf_def consumption_bind_return by simp
   also have "... \<le> measure (consumption (map_pmf f (coins k))) {x. x > enat k}"
     unfolding f_def 0 
-    by (intro consumption_mono_rev dice_roll_step_rspmf_approx h_gt_0)
+    by (intro consumption_mono_rev dice_roll_step_tspmf_approx h_gt_0)
   also have "... = measure (coins k) {l. \<lfloor>real l*h\<rfloor>\<noteq>\<lceil>(real l+1)*h\<rceil>-1}"
     unfolding consumption_def map_pmf_comp 
     by (simp add:vimage_def f_def algebra_simps split:option.split)
@@ -388,12 +388,12 @@ qed
 
 lemma dice_roll_expected_consumption_aux:
   assumes "n > (0::nat)"
-  shows "expected_consumption (dice_roll_rspmf n) \<le> log 2 n + 2" (is "?L \<le> ?R")
+  shows "expected_consumption (dice_roll_tspmf n) \<le> log 2 n + 2" (is "?L \<le> ?R")
 proof -
   define k0 where "k0 = nat \<lceil>log 2 n\<rceil>"
   define \<delta> where "\<delta> = log 2 n - \<lceil>log 2 n\<rceil>"
 
-  have 0: "ennreal (measure (consumption (dice_roll_rspmf n)) {x. x > enat k}) \<le> 
+  have 0: "ennreal (measure (consumption (dice_roll_tspmf n)) {x. x > enat k}) \<le> 
     ennreal (min (real n/2^k) 1)" (is "?L1 \<le> ?R1") for k
     by (intro iffD2[OF ennreal_le_iff] min.boundedI dice_roll_consumption_bound[OF assms]) auto
 
@@ -424,7 +424,7 @@ proof -
     using that convex_onD[OF twop_conv, where x="0" and y="1" and t="x"]
     by (simp add:algebra_simps)
 
-  have "?L = (\<Sum>k. ennreal (measure (consumption (dice_roll_rspmf n)) {x. x > enat k}))"
+  have "?L = (\<Sum>k. ennreal (measure (consumption (dice_roll_tspmf n)) {x. x > enat k}))"
     unfolding expected_consumption by simp
   also have "... \<le> (\<Sum>k. ennreal (min (real n/2^k) 1))"
     by (intro suminf_le summableI 0)
@@ -460,15 +460,16 @@ theorem dice_roll_coin_usage:
   assumes "n > (0::nat)"
   shows "expected_coin_usage_of_ra (dice_roll_ra n) \<le> log 2 n + 2" (is "?L \<le> ?R")
 proof -
-  have "?L = expected_consumption (rspmf_of_ra (dice_roll_ra n))"
+  have "?L = expected_consumption (tspmf_of_ra (dice_roll_ra n))"
     unfolding expected_consumption_correct[symmetric] by simp
-  also have "... = expected_consumption (dice_roll_rspmf n)"
-    unfolding dice_roll_ra_rspmf by simp
+  also have "... = expected_consumption (dice_roll_tspmf n)"
+    unfolding dice_roll_ra_tspmf by simp
   also have "... \<le> ?R"
     by (intro dice_roll_expected_consumption_aux assms)
   finally show ?thesis
     by simp
 qed
+
 
 
 end

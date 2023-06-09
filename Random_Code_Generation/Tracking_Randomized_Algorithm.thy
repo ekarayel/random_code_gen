@@ -292,24 +292,41 @@ lift_definition track_coin_use :: "'a random_alg \<Rightarrow> ('a \<times> nat)
   is track_random_bits
   by (rule wf_track_random_bits) 
 
-definition bind_rac :: 
+definition bind_tra :: 
   "('a \<times> nat) random_alg \<Rightarrow> ('a \<Rightarrow> ('b \<times> nat) random_alg) \<Rightarrow> ('b \<times> nat) random_alg"
-  where "bind_rac m f = do {
+  where "bind_tra m f = do {
     (r,k) \<leftarrow> m;
     (s,l) \<leftarrow> (f r);
     return_ra (s, k+l)
   }"
 
-definition coin_rac :: "(bool \<times> nat) random_alg"
-  where "coin_rac = do {
+definition coin_tra :: "(bool \<times> nat) random_alg"
+  where "coin_tra = do {
     b \<leftarrow> coin_ra;
     return_ra (b,1)
   }"
 
-definition return_rac :: "'a \<Rightarrow> ('a \<times> nat) random_alg"
-  where "return_rac x = return_ra (x,0)"
+definition return_tra :: "'a \<Rightarrow> ('a \<times> nat) random_alg"
+  where "return_tra x = return_ra (x,0)"
 
-adhoc_overloading Monad_Syntax.bind bind_rac
+adhoc_overloading Monad_Syntax.bind bind_tra
+
+text \<open>Monad laws:\<close>
+
+lemma return_bind_tra:
+  "bind_tra (return_tra x) g = g x"
+  unfolding bind_tra_def return_tra_def 
+  by (simp add:bind_return_ra return_bind_ra)
+
+lemma bind_tra_assoc:
+  "bind_tra (bind_tra f g) h = bind_tra f (\<lambda>x. bind_tra (g x) h)"
+  unfolding bind_tra_def 
+  by (simp add:bind_return_ra return_bind_ra bind_ra_assoc case_prod_beta' algebra_simps)
+
+lemma bind_return_tra:
+  "bind_tra m return_tra = m"
+  unfolding bind_tra_def return_tra_def 
+  by (simp add:bind_return_ra return_bind_ra)
 
 lemma track_coin_use_bind: 
   fixes m :: "'a random_alg" 
@@ -318,18 +335,18 @@ lemma track_coin_use_bind:
     (is "?L = ?R")
 proof -
   have "Rep_random_alg ?L = Rep_random_alg ?R"
-    unfolding track_coin_use.rep_eq bind_ra.rep_eq bind_rac_def
-    by (subst track_rb_bind) (simp_all add:rep_rand_alg comp_def case_prod_beta' 
+    unfolding track_coin_use.rep_eq bind_ra.rep_eq bind_tra_def
+    by (subst track_rb_bind) (simp_all add:wf_rep_rand_alg comp_def case_prod_beta' 
         track_coin_use.rep_eq bind_ra.rep_eq return_ra.rep_eq)
   thus ?thesis
     using Rep_random_alg_inject by auto
 qed
 
-lemma track_coin_use_coin: "track_coin_use coin_ra = coin_rac" (is "?L = ?R")
-  unfolding coin_rac_def using track_rb_coin[transferred] by metis
+lemma track_coin_use_coin: "track_coin_use coin_ra = coin_tra" (is "?L = ?R")
+  unfolding coin_tra_def using track_rb_coin[transferred] by metis
 
-lemma track_coin_use_return: "track_coin_use (return_ra x) = return_rac x"  (is "?L = ?R")
-  unfolding return_rac_def using track_rb_return[transferred] by metis
+lemma track_coin_use_return: "track_coin_use (return_ra x) = return_tra x"  (is "?L = ?R")
+  unfolding return_tra_def using track_rb_return[transferred] by metis
 
 lemma track_coin_use_lub:
   assumes "Complete_Partial_Order.chain ord_ra A"
@@ -342,12 +359,12 @@ proof -
     using track_coin_use.rep_eq unfolding image_image by auto
 
   have 1: "Complete_Partial_Order.chain ord_rm (Rep_random_alg ` track_coin_use ` A)"
-    using rep_rand_alg unfolding 2 by (intro chain_imageI[OF 0] track_random_bits_mono) auto
+    using wf_rep_rand_alg unfolding 2 by (intro chain_imageI[OF 0] track_random_bits_mono) auto
 
   have "Rep_random_alg ?L = track_random_bits (lub_rm (Rep_random_alg ` A))"
     using 0 unfolding track_coin_use.rep_eq lub_ra.rep_eq by simp
   also have "... = lub_rm (track_random_bits ` Rep_random_alg ` A)"
-    using rep_rand_alg by (intro track_random_bits_lub_rm 0) auto
+    using wf_rep_rand_alg by (intro track_random_bits_lub_rm 0) auto
   also have "... = Rep_random_alg ?R"
     using 1 unfolding lub_ra.rep_eq 2 by simp
   finally have "Rep_random_alg ?L = Rep_random_alg ?R"
@@ -363,14 +380,14 @@ lemma track_coin_use_mono:
 
 lemma bind_mono_aux_rac:
   assumes "ord_ra f1 f2" "\<And>y. ord_ra (g1 y) (g2 y)"
-  shows "ord_ra (bind_rac f1 g1) (bind_rac f2 g2)"
-  using assms bind_mono_aux  unfolding bind_rac_def ord_ra.rep_eq bind_ra.rep_eq 
+  shows "ord_ra (bind_tra f1 g1) (bind_tra f2 g2)"
+  using assms bind_mono_aux  unfolding bind_tra_def ord_ra.rep_eq bind_ra.rep_eq 
   by (auto intro!:bind_mono_aux random_monad_pd.leq_refl 
       simp:comp_def bind_ra.rep_eq case_prod_beta' return_ra.rep_eq)
 
 lemma bind_mono_rac [partial_function_mono]:
   assumes "mono_ra B" and "\<And>y. mono_ra (C y)"
-  shows "mono_ra (\<lambda>f. bind_rac (B f) (\<lambda>y. C y f))"
+  shows "mono_ra (\<lambda>f. bind_tra (B f) (\<lambda>y. C y f))"
   using assms by (intro monotoneI bind_mono_aux_rac) (auto simp:monotone_def)
 
 lemma track_coin_use_empty: 
@@ -387,7 +404,7 @@ lemma untrack_coin_use:
 proof -
   have "Rep_random_alg ?L = Rep_random_alg ?R"
     unfolding map_ra_def bind_ra.rep_eq track_coin_use.rep_eq comp_def return_ra.rep_eq
-    by (auto intro!:untrack_random_bits simp:rep_rand_alg)
+    by (auto intro!:untrack_random_bits simp:wf_rep_rand_alg)
   thus ?thesis
     using Rep_random_alg_inject by auto
 qed
@@ -460,15 +477,15 @@ proof(rule parallel_fixp_induct_1_1[OF
     using that by(rule rel_funD[OF param])
 qed
 
-lemma return_ra_tranfer[transfer_rule]: "((=) ===> rel_track_coin_use) return_rac return_ra"
+lemma return_ra_tranfer[transfer_rule]: "((=) ===> rel_track_coin_use) return_tra return_ra"
   unfolding rel_fun_def rel_track_coin_use_def track_coin_use_return by simp
 
 lemma bind_ra_tranfer[transfer_rule]:
-  "(rel_track_coin_use ===> ((=) ===> rel_track_coin_use) ===> rel_track_coin_use) bind_rac bind_ra"
+  "(rel_track_coin_use ===> ((=) ===> rel_track_coin_use) ===> rel_track_coin_use) bind_tra bind_ra"
   unfolding rel_fun_def rel_track_coin_use_def track_coin_use_bind by simp presburger
 
 lemma coin_ra_tranfer[transfer_rule]: 
-  "rel_track_coin_use coin_rac coin_ra"
+  "rel_track_coin_use coin_tra coin_ra"
   unfolding rel_fun_def rel_track_coin_use_def track_coin_use_coin by simp
 
 end

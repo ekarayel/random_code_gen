@@ -1,9 +1,20 @@
+section \<open>A Pseudorandom Number Generator\<close>
+
+text \<open>In this section we introduce a PRG, that can be used to generate random bits. It is an
+implementation of O'Neil's Permuted congruential generator~\cite{oneill2014} 
+(specifically PCG-XSH-RR). In empirical tests it ranks high~\cite{bhattacharjee2018, singh2020} 
+while having a low implementation complexity.
+
+This is for easy testing purposes only, the generated code can be run with any source of random
+bits.\<close>
+
 theory Permuted_Congruential_Generator
   imports 
     "HOL-Library.Word" 
     "HOL-Library.Stream" 
-    "HOL-Library.Code_Lazy"
 begin
+
+text \<open>The following are default constants from the reference implementation~\cite{pcgbasic}.\<close>
 
 definition pcg_mult :: "64 word"
   where "pcg_mult = 6364136223846793005"
@@ -15,6 +26,8 @@ fun pcg_rotr :: "32 word \<Rightarrow> nat \<Rightarrow> 32 word"
 
 fun pcg_step :: "64 word \<Rightarrow> 64 word"
   where "pcg_step state = state * pcg_mult + pcg_increment"
+
+text \<open>Based on \cite[Section~6.3.1]{oneill2014}:\<close>
 
 fun pcg_get :: "64 word \<Rightarrow> 32 word"
   where "pcg_get state = 
@@ -30,7 +43,5 @@ definition to_bits :: "32 word \<Rightarrow> bool list"
 
 definition random_bits :: "64 word \<Rightarrow> bool stream"
   where "random_bits seed = flat (smap (to_bits \<circ> pcg_get) (siterate pcg_step (pcg_init seed)))"
-
-(*code_lazy_type stream*)
 
 end

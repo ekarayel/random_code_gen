@@ -3,7 +3,6 @@ theory Randomized_Algorithm_Internal
     "HOL-Probability.Probability" 
     "HOL-Library.Extended_Nat"
     "Coin_Space"
-    "Coin_Space_Topology"
     "Tau_Additivity"
     "Zeta_Function.Zeta_Library"
     (* The last import is to pull set_nn_integral_cong which should be in
@@ -61,6 +60,20 @@ definition coin_rm :: "bool random_monad"
   where "coin_rm bs = Some (shd bs, stl bs)"
 
 adhoc_overloading Monad_Syntax.bind bind_rm
+
+text \<open>Monad laws:\<close>
+
+lemma return_bind_rm:
+  "bind_rm (return_rm x) g = g x"
+  unfolding bind_rm_def return_rm_def by simp
+
+lemma bind_rm_assoc:
+  "bind_rm (bind_rm f g) h = bind_rm f (\<lambda>x. bind_rm (g x) h)"
+  unfolding bind_rm_def by (simp add:case_prod_beta')
+
+lemma bind_return_rm:
+  "bind_rm m return_rm = m"
+  unfolding bind_rm_def return_rm_def by simp
 
 definition wf_on_prefix :: "'a random_monad \<Rightarrow> bool list \<Rightarrow> 'a \<Rightarrow> bool" where
   "wf_on_prefix f p r = (\<forall>cs. f (p@-cs) = Some (r,cs))"
