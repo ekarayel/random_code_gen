@@ -1,3 +1,16 @@
+section \<open>Randomized Algorithms\<close>
+
+text \<open>This section introduces the @{term "random_alg"} monad, that can be used to represent 
+executable randomized algorithms. It is a type-definition based on the internal representation from 
+Section~\ref{sec:randomized_algorithm_internal} with the wellformedness restriction.
+
+Additionally, we introduce the @{term "spmf_of_ra"} morphism, which represent the distribution of
+a randomized algorithm, under the assumption that the coin flips are independent and unbiased.
+
+We also show that it is a Scott-continuous monad-morphism and introduce transfer theorems, with
+which it is possible to establish the corresponding SPMF of a randomized algorithms, even in the
+case of (possibly infinite) loops.\<close>
+
 theory Randomized_Algorithm
   imports 
     Randomized_Algorithm_Internal     
@@ -480,7 +493,7 @@ declaration \<open>Partial_Function.init "random_alg" \<^term>\<open>random_alg_
   @{thm random_alg_pf.fixp_rule_uc} @{thm random_alg_pf.fixp_induct_uc}
   NONE\<close>
 
-section \<open>Almost surely terminating randomized algorithms\<close>
+subsection \<open>Almost surely terminating randomized algorithms\<close>
 
 definition terminates_almost_surely :: "'a random_alg \<Rightarrow> bool"
   where "terminates_almost_surely f \<longleftrightarrow> lossless_spmf (spmf_of_ra f)"

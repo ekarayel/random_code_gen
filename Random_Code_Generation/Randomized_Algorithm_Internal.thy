@@ -1,5 +1,7 @@
+section \<open>Randomized Algorithms (Raw Version)\label{sec:randomized_algorithm_internal}\<close>
+
 theory Randomized_Algorithm_Internal
-  imports 
+  imports
     "HOL-Probability.Probability" 
     "HOL-Library.Extended_Nat"
     "Coin_Space"

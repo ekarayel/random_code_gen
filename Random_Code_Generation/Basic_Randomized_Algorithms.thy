@@ -1,3 +1,9 @@
+section \<open>Basic Randomized Algorithms\label{sec:basic_randomized_algorithms}\<close>
+
+text \<open>This section introduces a few randomized algorithms for well-known distributions. These both
+serve as building blocks for more complex algorithms and as examples describing how to use the
+framework.\<close>
+
 theory Basic_Randomized_Algorithms
   imports 
     Randomized_Algorithm 
@@ -36,6 +42,16 @@ qed
 lemma bernoulli_ra_correct: "bernoulli x = spmf_of_ra (bernoulli_ra x)"
   using lossless_bernoulli weight_spmf_le_1 unfolding lossless_spmf_def
   by (intro eq_iff_ord_spmf[OF _ bernoulli_ra_correct_aux]) auto 
+
+text \<open>Because @{term "bernoulli p"} is loss-less SPMF equivalent to
+@{term "spmf_of_pmf (bernoulli_pmf p)"} it is also possible to express the above, without referring
+to SPMFs:\<close>
+
+lemma 
+  "terminates_almost_surely (bernoulli_ra p)"
+  "bernoulli_pmf p = pmf_of_ra (bernoulli_ra p)"
+  unfolding terminates_almost_surely_def pmf_of_ra_def bernoulli_ra_correct[symmetric]
+  by (simp_all add: bernoulli_eq_bernoulli_pmf pmf_of_spmf)
 
 context 
   includes lifting_syntax

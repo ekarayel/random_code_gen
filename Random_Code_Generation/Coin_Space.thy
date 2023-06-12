@@ -1,3 +1,8 @@
+section \<open>Coin Flip Space\<close>
+
+text \<open>In this section, we introduce the coin flip space, an infinite lazy stream of booleans and
+introduce a probability measure and topology for the space.\<close>
+
 theory Coin_Space
   imports 
     "HOL-Probability.Probability" 
@@ -261,7 +266,9 @@ apply $\tau$-additivity.
 
 An alternative would have been to pull-back the product topology into @{term "\<B>"} but that would
 introduce topology instances on @{typ "'a stream"} which may not be desirable/conflict with other
-interpretations.\<close>
+interpretations. A second idea would be to introduce a wrapper type for bool streams, however that
+reduces readability of the internal representation of the randomized algorithms in 
+Section~\ref{sec:randomized_algorithms_internal}.\<close>
 
 definition from_coins :: "bool stream \<Rightarrow> (nat \<Rightarrow> bool discrete)" 
   where "from_coins s i = discrete (s !! i)"
@@ -446,8 +453,7 @@ proof -
   also have "... \<in> sets M"
     using K'_range assms(2,3) countable_subset
     by (intro sets.countable_Union) auto
-  finally show ?thesis
-    by simp
+  finally show ?thesis by simp
 qed
 
 lemma coin_space_is_borel_measure:
@@ -493,7 +499,7 @@ proof -
     by (intro at_least_borelI[OF K_top_basis K_countable] assms) auto
 qed
 
-text \<open>This the upper topology on @{typ "'a option"} with the natural partial order on 
+text \<open>This is the upper topology on @{typ "'a option"} with the natural partial order on 
 @{typ "'a option"}.\<close>
 
 definition option_ud :: "'a option topology"
@@ -501,12 +507,9 @@ definition option_ud :: "'a option topology"
 
 lemma option_ud_topology: "istopology (\<lambda>S. S=UNIV \<or> None \<notin> S)" (is "istopology ?T")
 proof -
-  have "?T (U \<inter> V)" if "?T U" "?T V" for U V
-    using that by auto
-  moreover have "?T (\<Union>K)" if "\<And>U. U \<in> K \<Longrightarrow> ?T U" for K
-    using that by auto
-  ultimately show ?thesis
-    unfolding istopology_def by auto
+  have "?T (U \<inter> V)" if "?T U" "?T V" for U V using that by auto
+  moreover have "?T (\<Union>K)" if "\<And>U. U \<in> K \<Longrightarrow> ?T U" for K using that by auto
+  ultimately show ?thesis unfolding istopology_def by auto
 qed
 
 lemma openin_option_ud: "openin option_ud S \<longleftrightarrow> (S = UNIV \<or> None \<notin> S)"
@@ -514,8 +517,7 @@ lemma openin_option_ud: "openin option_ud S \<longleftrightarrow> (S = UNIV \<or
 
 lemma topspace_option_ud: "topspace option_ud = UNIV"
 proof -
-  have "UNIV \<subseteq> topspace option_ud"
-    by (intro openin_subset) (simp add:openin_option_ud)
+  have "UNIV \<subseteq> topspace option_ud" by (intro openin_subset) (simp add:openin_option_ud)
   thus ?thesis by auto
 qed
 
@@ -547,7 +549,6 @@ qed
 
 lemma map_option_continuous:
   "continuous_map option_ud option_ud (map_option f)"
-  by (intro contionuos_into_option_udI) 
-    (simp add:topspace_option_ud vimage_def openin_option_ud)
+  by (intro contionuos_into_option_udI) (simp add:topspace_option_ud vimage_def openin_option_ud)
 
 end

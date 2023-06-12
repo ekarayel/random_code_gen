@@ -1,3 +1,11 @@
+section \<open>Tracking SPMFs\label{sec:tracking_spmfs}\<close>
+
+text \<open>This section introduces tracking SPMFs --- this is a resource monad on top of SPMFs, we also
+introduce the Scott-continous monad morphism @{term "tspmf_of_ra"}, with which it is possible to 
+reason about the joint-distribution of a randomized algorithm's result and used coin-flips.
+
+An example application of the results in this theory can be found in Section~\ref{sec:dice_roll}.\<close>
+
 theory Tracking_SPMF
   imports Tracking_Randomized_Algorithm
 begin
@@ -46,8 +54,17 @@ lemma bind_mono_tspmf [partial_function_mono]:
 definition ord_tspmf :: "'a tspmf \<Rightarrow> 'a tspmf \<Rightarrow> bool" where 
   "ord_tspmf = ord_spmf (\<lambda>x y. fst x = fst y \<and> snd x \<ge> snd y)"
 
-notation
-  ord_tspmf  ("(_/ \<le>\<^sub>R _)"  [51, 51] 50) 
+bundle ord_tspmf_notation
+begin
+  notation ord_tspmf  ("(_/ \<le>\<^sub>R _)"  [51, 51] 50) 
+end
+
+bundle no_ord_tspmf_notation
+begin
+  no_notation ord_tspmf  ("(_/ \<le>\<^sub>R _)"  [51, 51] 50) 
+end
+
+unbundle ord_tspmf_notation
 
 definition consumption :: "'a tspmf \<Rightarrow> enat pmf"
   where "consumption = map_pmf (\<lambda>x. case x of None \<Rightarrow> \<infinity> | Some y \<Rightarrow> enat (snd y))"

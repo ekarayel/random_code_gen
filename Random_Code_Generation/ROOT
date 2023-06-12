@@ -2,6 +2,9 @@ chapter AFP
 
 session Random_Code_Generation (AFP) = "HOL-Probability" +
   options [timeout = 1200]
+  sessions
+    Probabilistic_While
+    Zeta_Function
   theories
     Tau_Additivity
     Coin_Space
@@ -14,3 +17,4 @@ session Random_Code_Generation (AFP) = "HOL-Probability" +
     Permuted_Congruential_Generator
   document_files
     "root.tex"
+    "root.bib"

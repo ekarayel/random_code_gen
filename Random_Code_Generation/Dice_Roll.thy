@@ -1,3 +1,5 @@
+section \<open>Dice Roll\label{sec:dice_roll}\<close>
+
 theory Dice_Roll
   imports Tracking_SPMF
 begin
@@ -469,7 +471,5 @@ proof -
   finally show ?thesis
     by simp
 qed
-
-
 
 end

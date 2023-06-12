@@ -7,7 +7,7 @@ begin
 text \<open>For general countable chains of measurable sets, it is possible to deduce that the supremum
 of the measures of the sets is equal to the measure of the union of the family:
 \[
-  \mu \left( \bigcup{X \in \mathcal X} X \right) = \sup_{X \in \mathcal X} \mu (X)
+  \mu \left( \bigcup{\mathcal X} \right) = \sup_{X \in \mathcal X} \mu (X)
 \]
 this is shown in @{thm [source] SUP_emeasure_incseq}.
 

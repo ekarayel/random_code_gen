@@ -1,3 +1,5 @@
+section \<open>Tracking Randomized Algorithms\<close>
+
 theory Tracking_Randomized_Algorithm
   imports Randomized_Algorithm 
 begin
