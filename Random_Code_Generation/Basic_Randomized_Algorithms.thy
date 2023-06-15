@@ -12,7 +12,83 @@ theory Basic_Randomized_Algorithms
     Permuted_Congruential_Generator
 begin
 
-text \<open>Bernoulli distribution\<close>
+text \<open>A simple example: Here we define a randomized algorithm that can sample uniformly from
+@{term "pmf_of_set {..<2^n}"}. (The same problem for general ranges is discussed in 
+Section~\ref{sec:dice_roll}).\<close>
+
+fun binary_dice_roll :: "nat \<Rightarrow> nat random_alg"
+  where
+    "binary_dice_roll 0 = return_ra 0" |
+    "binary_dice_roll (Suc n) =
+      do { h \<leftarrow> binary_dice_roll n;
+           c \<leftarrow> coin_ra;
+           return_ra (of_bool c + 2 * h)
+        }"
+
+text \<open>Because the algorithm terminates unconditionally it is easy to very that binary_dice_roll
+terminates almost surely\<close>
+
+lemma binary_dice_roll_terminates: "terminates_almost_surely (binary_dice_roll n)"
+  by (induction n) (auto intro:terminates_almost_surely_intros)
+ 
+text \<open>The corresponding pmf can be written as:\<close>
+      
+fun binary_dice_roll_pmf :: "nat \<Rightarrow> nat pmf"
+  where
+    "binary_dice_roll_pmf 0 = return_pmf 0" |
+    "binary_dice_roll_pmf (Suc n) =
+      do { h \<leftarrow> binary_dice_roll_pmf n;
+           c \<leftarrow> coin_pmf;
+           return_pmf (of_bool c + 2 * h)
+        }"
+
+text \<open>To verify that the distribution of the result of @{term "binary_dice_roll"} is 
+@{term "binary_dice_roll_pmf"} we can rely on the @{thm [source] pmf_of_ra_simps} simp rules
+and the @{thm [source] "terminates_almost_surely_intros"} introduction rules:\<close>
+
+lemma "pmf_of_ra (binary_dice_roll n) = binary_dice_roll_pmf n"
+  using binary_dice_roll_terminates 
+  by (induction n) (simp_all add:terminates_almost_surely_intros pmf_of_ra_simps)
+
+text \<open>Let us now consider an algorithm that does not terminate unconditionally but just almost
+surely:\<close>
+
+partial_function (random_alg) binary_geometric :: "nat \<Rightarrow> nat random_alg"
+  where
+    "binary_geometric n =
+      do { c \<leftarrow> coin_ra;
+           if c then (return_ra n) else binary_geometric (n+1)
+        }"
+
+text \<open>This is necessary for running randomized algorithms defined with the partial_function 
+directive:\<close>
+declare binary_geometric.simps[code]
+
+text \<open>In this case, we need to map to an SPMF:\<close>
+
+partial_function (spmf) binary_geometric_spmf :: "nat \<Rightarrow> nat spmf"
+  where
+    "binary_geometric_spmf n =
+      do { c \<leftarrow> coin_spmf;
+           if c then (return_spmf n) else binary_geometric_spmf (n+1)
+        }"
+
+text \<open>We use the transfer rules for @{term "spmf_of_ra"} to show the correspondence:\<close>
+
+lemma binary_geometric_ra_correct: 
+  "spmf_of_ra (binary_geometric x) = binary_geometric_spmf x"
+proof -
+  include lifting_syntax
+  have "((=) ===> rel_spmf_of_ra) binary_geometric_spmf binary_geometric"
+    unfolding binary_geometric_def binary_geometric_spmf_def
+    apply (rule fixp_ra_parametric[OF binary_geometric_spmf.mono binary_geometric.mono])
+    by transfer_prover
+  thus ?thesis
+    unfolding rel_fun_def rel_spmf_of_ra_def by auto
+qed
+
+text \<open>Bernoulli distribution: For this example we show correspondence with the already existing
+definition of bernoulli SPMF.\<close>
 
 partial_function (random_alg) bernoulli_ra :: "real \<Rightarrow> bool random_alg" where
   "bernoulli_ra p = do {
@@ -22,8 +98,11 @@ partial_function (random_alg) bernoulli_ra :: "real \<Rightarrow> bool random_al
      else bernoulli_ra (2 * p - 1)
    }"
   
-text \<open>This is necessary for running randomized algorithms.\<close>
 declare bernoulli_ra.simps[code]
+
+text \<open>The following is a different technique to show equivalence of an SPMF with a randomized
+algorithm. It only works well if the SPMF has weight 1. First we show that the SPMF is a lower
+bound:\<close>
 
 lemma bernoulli_ra_correct_aux: "ord_spmf (=) (bernoulli x) (spmf_of_ra (bernoulli_ra x))"
 proof (induction arbitrary:x rule:bernoulli.fixp_induct)
@@ -39,6 +118,7 @@ next
       (auto intro:ord_spmf_bind_reflI simp:spmf_of_ra_simps)
 qed
 
+text \<open>Then relying on the fact that the SPMF has weight one, we can derive equivalence:\<close>
 lemma bernoulli_ra_correct: "bernoulli x = spmf_of_ra (bernoulli_ra x)"
   using lossless_bernoulli weight_spmf_le_1 unfolding lossless_spmf_def
   by (intro eq_iff_ord_spmf[OF _ bernoulli_ra_correct_aux]) auto 
@@ -63,7 +143,8 @@ lemma bernoulli_ra_transfer [transfer_rule]:
 
 end
 
-text \<open>Geometric distribution\<close>
+text \<open>Using the randomized algorithm for the bernoulli destribution, we can introduce one for the 
+general geometric distribution:\<close>
 
 partial_function (random_alg) geometric_ra :: "real \<Rightarrow> nat random_alg" where
   "geometric_ra p = do {

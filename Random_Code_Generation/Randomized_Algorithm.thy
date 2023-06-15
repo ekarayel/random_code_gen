@@ -14,7 +14,6 @@ case of (possibly infinite) loops.\<close>
 theory Randomized_Algorithm
   imports 
     Randomized_Algorithm_Internal     
-    "HOL-Library.Code_Lazy"
 begin
 
 text \<open>A stronger variant of @{thm [source] pmf_eqI}.\<close>
@@ -89,8 +88,6 @@ lift_definition lub_ra :: "'a random_alg set \<Rightarrow> 'a random_alg" is
   using wf_lub wf_empty by auto
 
 lift_definition ord_ra :: "'a random_alg \<Rightarrow> 'a random_alg \<Rightarrow> bool" is "ord_rm" .
-
-code_lazy_type stream
 
 lift_definition run_ra :: "'a random_alg \<Rightarrow> bool stream \<Rightarrow> 'a option" is
   "(\<lambda>f s. map_option fst (f s))" .
@@ -436,17 +433,8 @@ lemma mcont2mcont_spmf_of_ra[THEN spmf.mcont2mcont, cont_intro]:
   unfolding mcont_def monotone_def cont_def
   by (auto simp: spmf_of_ra_mono spmf_of_ra_lub_ra)
 
-(*
-lemma (in ccpo) ccpo: "class.ccpo Sup (\<le>) (mk_less (\<le>))"
-proof -
-  have "class.ccpo Sup (\<le>) ((<) :: 'a \<Rightarrow> _)"
-    by (rule ccpo_axioms)
-  also have "((<) :: 'a \<Rightarrow> _) = mk_less (\<le>)"
-    by (auto simp: fun_eq_iff mk_less_def)
-  finally show ?thesis .
-qed
-*)
-context includes lifting_syntax
+context
+  includes lifting_syntax
 begin
 
 lemma fixp_ra_parametric[transfer_rule]:
@@ -497,19 +485,21 @@ subsection \<open>Almost surely terminating randomized algorithms\<close>
 
 definition terminates_almost_surely :: "'a random_alg \<Rightarrow> bool"
   where "terminates_almost_surely f \<longleftrightarrow> lossless_spmf (spmf_of_ra f)"
- 
+
 definition pmf_of_ra :: "'a random_alg \<Rightarrow> 'a pmf" where
   "pmf_of_ra p = map_pmf the (spmf_of_ra p)"
 
 lemma pmf_of_spmf: "map_pmf the (spmf_of_pmf x) = x"
   by (simp add:map_pmf_comp spmf_of_pmf_def)
 
-lemma pmf_of_ra_coin: "pmf_of_ra (coin_ra) = pmf_of_set UNIV" (is "?L = ?R")
+definition coin_pmf :: "bool pmf" where "coin_pmf = pmf_of_set UNIV"
+
+lemma pmf_of_ra_coin: "pmf_of_ra (coin_ra) = coin_pmf" (is "?L = ?R")
 proof -
   have 0:"spmf_of_ra (coin_ra) = spmf_of_pmf (pmf_of_set UNIV)"
     unfolding spmf_of_ra_coin spmf_of_set_def by simp
   thus ?thesis
-    unfolding 0 pmf_of_ra_def pmf_of_spmf by simp
+    unfolding 0 pmf_of_ra_def pmf_of_spmf coin_pmf_def by simp
 qed
 
 lemma pmf_of_ra_return: "pmf_of_ra (return_ra x) = return_pmf x"
@@ -546,7 +536,8 @@ lemma terminates_almost_surely_return:
   "terminates_almost_surely (return_ra x)"
   unfolding terminates_almost_surely_def spmf_of_ra_return by simp
 
-lemma terminates_almost_surely_coin: "terminates_almost_surely coin_ra"
+lemma terminates_almost_surely_coin: 
+  "terminates_almost_surely coin_ra"
   unfolding terminates_almost_surely_def spmf_of_ra_coin by simp
 
 lemma terminates_almost_surely_bind:

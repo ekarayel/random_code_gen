@@ -1,4 +1,8 @@
-section \<open>Randomized Algorithms (Raw Version)\label{sec:randomized_algorithm_internal}\<close>
+section \<open>Randomized Algorithms (Internal Representation)\label{sec:randomized_algorithm_internal}\<close>
+
+text \<open>This section introduces the internal representation for randomized algorithms. For ease of
+use, we also introduce a @{term "typedef"} for the monad which is intended for users of this
+library.\<close>
 
 theory Randomized_Algorithm_Internal
   imports
@@ -46,10 +50,30 @@ lemma the_elem_opt_Some_iff[simp]: "at_most_one S \<Longrightarrow> the_elem_opt
 lemma the_elem_opt_None_iff[simp]: "at_most_one S \<Longrightarrow> the_elem_opt S = None \<longleftrightarrow> S = {}"
   by (induction S rule:at_most_one_cases) auto
 
+text \<open>The following is the fundamental type of the randomized algorithms, which are represented
+as function that take a infinite stream of coin flips and return the unused remainder together
+with the result. We use an @{typ "'a option"} type to be able to introduce the denotational-
+semantics, particularly the mapping to the corresponding PMFs.\<close>
+
 type_synonym 'a random_monad = "bool stream \<Rightarrow> ('a \<times> bool stream) option"
+(*
+consts
+  return_ra :: "'a \<Rightarrow> 'b"
+  coin_ra :: "'a"
+*)
+
+text \<open>The @{term "return_rm"} combinator, does not consume any coin-flips and thus returns the 
+entire stream together with the result.\<close>
 
 definition return_rm :: "'a \<Rightarrow> 'a random_monad"
   where "return_rm x bs = Some (x, bs)"
+(*
+adhoc_overloading return_ra "\<lambda>x bs. Some (x,bs)"
+*)
+
+text \<open>The @{term "bind_rm"} combinator, passes the coin-flips to the first algorithm, then passes 
+the remaining coin flips to the second function, and returns the unused coin-flips from both 
+steps.\<close>
 
 definition bind_rm :: "'a random_monad \<Rightarrow> ('a \<Rightarrow> 'b random_monad) \<Rightarrow> 'b random_monad"
   where "bind_rm m f bs = 
@@ -58,8 +82,38 @@ definition bind_rm :: "'a random_monad \<Rightarrow> ('a \<Rightarrow> 'b random
       f r bs' 
     }"
 
+text \<open>The @{term "coin_rm"} combinator consumes one coin-flip and return it as the result, while the
+tail of the coin flips are returned as unused.\<close>
+
 definition coin_rm :: "bool random_monad"
   where "coin_rm bs = Some (shd bs, stl bs)"
+
+text \<open>This representation is similar to the model proposed by Hurd~\cite{hurd2003formal}, although
+we were not aware of the technical report, when initially considering this representation. It is 
+also closely related to the construction of parser monads in functional languages~\cite{hutton1998}.
+
+We also had following alternatives considered, with various advantages and drawbacks:
+
+\begin{itemize}
+\item \emph{Returning the count of used coin flips:} Instead of returning a suffix of the initial
+stream a randomized algorithm could also return the number of used coin flips, which then would
+allow the definition of the bind function, in a way that performs the appropriate shift in the
+stream according to the returned integer. An advantage of this model, is that it makes the number
+of used coin-flips accessible for testing purposes. (As we will see below, this is still possible
+even in this model, albeit with some more work.) The main disadvantage of this model is that 
+in scenarios, where the coin-flips cannot be computed in a random-access way, it leads to
+performance degredation. Indeed it is easy to construct example algorithms, which incur
+asymptotically quadratic slow-down compared to the formalized model.
+\item \emph{Trees of coin-flips:} Another model we were considering is to require an infinite tree
+of coin-flips as input instead of a stream. Here the idea is that each bind operation would pass
+the LHS of the tree to the first algorithm and the RHS of the tree to the second algorithm. This
+model has the dis-advantage that the resulting `'monad'', does not fulfill the associativity law.
+Moreover many PRG's are designed and tested in the streaming sense, and there is not a low of
+research into the performance of tree-like PRGs.
+\end{itemize}
+
+Another reason for using the formalized representation is compatibility with
+linear types~\cite{bernardy2018}, if support for them are introduced in Isabelle in future.\<close>
 
 adhoc_overloading Monad_Syntax.bind bind_rm
 
@@ -101,7 +155,6 @@ qed
 
 definition measure_rm :: "'a random_monad \<Rightarrow> 'a option measure"
   where "measure_rm f = distr \<B> \<D> (map_option fst \<circ> f)"
-
 
 lemma wf_randomI:
   assumes "\<And>bs. f bs \<noteq> None \<Longrightarrow> (\<exists>p r. sprefix p bs \<and> wf_on_prefix f p r)"

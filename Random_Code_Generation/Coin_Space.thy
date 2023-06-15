@@ -188,14 +188,14 @@ proof -
     fix x assume "x \<in> {a \<times> b |a b. a \<in> sets A \<and> b \<in> sets M}"
     then obtain u v where uv_def: "x = u \<times> v" "u \<in> sets A" "v \<in> sets M"
       by auto
-    have 8:"u \<inter> A' \<in> sets (restrict_space A A')"
+    have 1:"u \<inter> A' \<in> sets (restrict_space A A')"
       using uv_def(2) unfolding sets_restrict_space by auto
     have "v \<subseteq> space M"
       using uv_def(3) sets.sets_into_space by auto
     hence "A' \<times> space M \<inter> x = (u \<inter> A') \<times> v"
       unfolding uv_def(1) by auto
     also have "... \<in> {a \<times> b |a b. a \<in> sets (restrict_space A A') \<and> b \<in> sets M}"
-      using 8 uv_def(3) by auto
+      using 1 uv_def(3) by auto
 
     finally show "A' \<times> space M \<inter> x \<in> {a \<times> b |a b. a \<in> sets (restrict_space A A') \<and> b \<in> sets M}"
       by simp
@@ -215,22 +215,22 @@ proof -
     ultimately show "x \<in> ?X"
       by simp
   qed
-  ultimately have 1: "?X = {a \<times> b |a b. a \<in> sets (restrict_space A A') \<and> b \<in> sets M}" by simp
+  ultimately have 2: "?X = {a \<times> b |a b. a \<in> sets (restrict_space A A') \<and> b \<in> sets M}" by simp
 
   have "sets ?R = sigma_sets (A'\<times>space M) ((\<inter>) (A'\<times>space M) ` {a\<times>b |a b. a \<in> sets A\<and>b \<in> sets M})"
     unfolding sets_restrict_space sets_pair_measure using assms  sets.sets_into_space
     by (intro sigma_sets_Int sigma_sets.Basic) auto
   also have "... = sets (restrict_space A A' \<Otimes>\<^sub>M M)"
-    unfolding sets_pair_measure space_restrict_space Int_absorb2[OF 0] sets_restrict_space 1
+    unfolding sets_pair_measure space_restrict_space Int_absorb2[OF 0] sets_restrict_space 2
     by auto
-  finally have 2:"sets (restrict_space (A \<Otimes>\<^sub>M M) (A' \<times> space M)) = sets (restrict_space A A' \<Otimes>\<^sub>M M)"
+  finally have 3:"sets (restrict_space (A \<Otimes>\<^sub>M M) (A' \<times> space M)) = sets (restrict_space A A' \<Otimes>\<^sub>M M)"
     by simp
 
-  have 3: "emeasure (restrict_space A A'\<Otimes>\<^sub>MM) S = emeasure (restrict_space (A\<Otimes>\<^sub>MM) (A'\<times>space M)) S"
-    (is "?L1 = ?R1") if 4:"S \<in> sets (restrict_space A A' \<Otimes>\<^sub>M M)" for S
+  have 4: "emeasure (restrict_space A A'\<Otimes>\<^sub>MM) S = emeasure (restrict_space (A\<Otimes>\<^sub>MM) (A'\<times>space M)) S"
+    (is "?L1 = ?R1") if 5:"S \<in> sets (restrict_space A A' \<Otimes>\<^sub>M M)" for S
   proof -
     have "Pair x -` S = {}" if "x \<notin> A'" "x \<in> space A" for x
-      using that 4 by (auto simp add:2[symmetric] sets_restrict_space)
+      using that 5 by (auto simp add:3[symmetric] sets_restrict_space)
     hence 5: "emeasure M (Pair x -` S) = 0" if "x \<notin> A'" "x \<in> space A" for x
       using that by auto
     have "?L1 = (\<integral>\<^sup>+ x. emeasure M (Pair x -` S) \<partial>restrict_space A A')"
@@ -241,14 +241,14 @@ proof -
       using 5 by (intro nn_integral_cong) force
     also have "... = emeasure (A \<Otimes>\<^sub>M M) S"
       using that assms by (intro emeasure_pair_measure_alt[symmetric])
-        (auto simp add:2[symmetric] sets_restrict_space)
+        (auto simp add:3[symmetric] sets_restrict_space)
     also have "... = ?R1"
       using assms that by (intro emeasure_restrict_space[symmetric])
-        (auto simp add:2[symmetric] sets_restrict_space)
+        (auto simp add:3[symmetric] sets_restrict_space)
     finally show ?thesis by simp
   qed
 
-  show ?thesis using 2 3
+  show ?thesis using 3 4
     by (intro measure_eqI) auto
 qed
 
@@ -338,7 +338,7 @@ lemma branch_coin_space:
   "distr (\<B> \<Otimes>\<^sub>M \<B>) \<B> (\<lambda>(x,y). stake n x@-y) = \<B>" (is "?L = ?R")
 proof -
   let ?M = "measure_pmf (pmf_of_set (UNIV :: bool set))"
-  let ?S = "(PiM UNIV (\<lambda>_. ?M))"
+  let ?S = "PiM UNIV (\<lambda>_. ?M)"
 
   interpret S: sequence_space "?M"
     by standard
