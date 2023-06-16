@@ -4,7 +4,7 @@ theory Tracking_Randomized_Algorithm
   imports Randomized_Algorithm 
 begin
 
-definition track_random_bits :: "'a random_monad \<Rightarrow> ('a \<times> nat) random_monad"
+definition track_random_bits :: "'a random_alg_int \<Rightarrow> ('a \<times> nat) random_alg_int"
   where "track_random_bits f bs = 
     do {
       (r,bs') \<leftarrow> f bs;
@@ -20,7 +20,7 @@ lemma track_random_bits_Some_iff:
 lemma track_random_bits_alt:
   assumes "wf_random f"
   shows "track_random_bits f bs = 
-    map_option (\<lambda>p. ((eval_rm f p, length p), sdrop (length p) bs)) (consumed_prefix f bs)"
+    map_option (\<lambda>p. ((eval_rm f p, length p), cdrop (length p) bs)) (consumed_prefix f bs)"
 proof (cases "consumed_prefix f bs")
   case None
   hence "f bs = None"
@@ -29,45 +29,45 @@ proof (cases "consumed_prefix f bs")
     unfolding track_random_bits_def None by simp
 next
   case (Some a)
-  hence "f bs = Some (eval_rm f a, sdrop (length a) bs)"
+  hence "f bs = Some (eval_rm f a, cdrop (length a) bs)"
     by (subst wf_random_alt[OF assms(1)]) simp
   then show ?thesis 
     unfolding track_random_bits_def Some consumed_bits_def by simp
 qed
 
-lemma track_rb_coin: "track_random_bits coin_rm = coin_rm \<bind> (\<lambda>b. return_rm (b,1))" (is "?L = ?R")
+lemma track_rb_coin: "track_random_bits coin_rai = coin_rai \<bind> (\<lambda>b. return_rai (b,1))" (is "?L = ?R")
 proof (rule ext)
-  fix bs :: "bool stream"
-  have "wf_on_prefix coin_rm [shd bs] (shd bs)" 
-    unfolding wf_on_prefix_def coin_rm_def by simp
-  moreover have "sprefix [shd bs] bs"
-    unfolding sprefix_def by simp
-  ultimately have "{p \<in> ptree_rm (coin_rm). sprefix p bs} = {[shd bs]}"
+  fix bs :: "coin_stream"
+  have "wf_on_prefix coin_rai [chd bs] (chd bs)" 
+    unfolding wf_on_prefix_def coin_rai_def by simp
+  moreover have "cprefix [chd bs] bs"
+    unfolding cprefix_def by simp
+  ultimately have "{p \<in> ptree_rm (coin_rai). cprefix p bs} = {[chd bs]}"
     by (intro prefixes_singleton) (auto simp:ptree_rm_def) 
-  hence "consumed_prefix (coin_rm) bs = Some [shd bs]"
+  hence "consumed_prefix (coin_rai) bs = Some [chd bs]"
     unfolding consumed_prefix_def by simp
-  hence "consumed_bits (coin_rm) bs = Some 1" 
+  hence "consumed_bits (coin_rai) bs = Some 1" 
     unfolding consumed_bits_def by simp
   thus "?L bs = ?R bs"
-    unfolding track_random_bits_def bind_rm_def 
-    by (simp add:coin_rm_def return_rm_def)
+    unfolding track_random_bits_def bind_rai_def 
+    by (simp add:coin_rai_def return_rai_def)
 qed
 
-lemma track_rb_return: "track_random_bits (return_rm x) = return_rm (x,0)" (is "?L = ?R")
+lemma track_rb_return: "track_random_bits (return_rai x) = return_rai (x,0)" (is "?L = ?R")
 proof (rule ext)
-  fix bs :: "bool stream"
-  have "wf_on_prefix (return_rm x) [] x"
-    unfolding wf_on_prefix_def return_rm_def by simp
-  moreover have "sprefix [] bs"
-    unfolding sprefix_def by simp
-  ultimately have "{p \<in> ptree_rm (return_rm x). sprefix p bs} = {[]}"
+  fix bs :: "coin_stream"
+  have "wf_on_prefix (return_rai x) [] x"
+    unfolding wf_on_prefix_def return_rai_def by simp
+  moreover have "cprefix [] bs"
+    unfolding cprefix_def by simp
+  ultimately have "{p \<in> ptree_rm (return_rai x). cprefix p bs} = {[]}"
     by (intro prefixes_singleton) (auto simp:ptree_rm_def) 
-  hence "consumed_prefix (return_rm x) bs = Some []"
+  hence "consumed_prefix (return_rai x) bs = Some []"
     unfolding consumed_prefix_def by simp
-  hence "consumed_bits (return_rm x) bs = Some 0" 
+  hence "consumed_bits (return_rai x) bs = Some 0" 
     unfolding consumed_bits_def by simp
   thus "?L bs = ?R bs"
-    unfolding track_random_bits_def by (simp add:return_rm_def)
+    unfolding track_random_bits_def by (simp add:return_rai_def)
 qed
 
 lemma consumed_prefix_imp_wf:
@@ -84,12 +84,12 @@ qed
 
 lemma consumed_prefix_imp_prefix:
   assumes "consumed_prefix m bs = Some p"
-  shows "sprefix p bs"
+  shows "cprefix p bs"
   using assms unfolding consumed_prefix_def the_elem_opt_Some_iff[OF prefixes_at_most_one] by blast
 
 lemma consumed_prefix_bindI:
   assumes "consumed_prefix m bs = Some p"
-  assumes "consumed_prefix (f (eval_rm m p)) (sdrop (length p) bs) = Some q" 
+  assumes "consumed_prefix (f (eval_rm m p)) (cdrop (length p) bs) = Some q" 
   shows "consumed_prefix (m \<bind> f) bs = Some (p@q)"
 proof -
   define r where "r = eval_rm m p"
@@ -97,7 +97,7 @@ proof -
   have 0: "wf_on_prefix m p r"
     unfolding r_def using consumed_prefix_imp_wf[OF assms(1)] by simp
 
-  have "consumed_prefix (f r) (sdrop (length p) bs) = Some q"
+  have "consumed_prefix (f r) (cdrop (length p) bs) = Some q"
     using assms(2) unfolding r_def by simp
   hence 1: "wf_on_prefix (f r) q (eval_rm (f r) q)"
     using consumed_prefix_imp_wf by auto
@@ -105,11 +105,11 @@ proof -
     by (intro wf_on_prefix_bindI[where r="r"] 0 1) 
   hence "p@q \<in> ptree_rm (m \<bind> f)"
     unfolding ptree_rm_def by auto
-  moreover have "sprefix p bs" "sprefix q (sdrop (length p) bs)"
+  moreover have "cprefix p bs" "cprefix q (cdrop (length p) bs)"
     using consumed_prefix_imp_prefix assms by auto
-  hence "sprefix (p@q) bs"
-    unfolding sprefix_def by (metis length_append stake_add)
-  ultimately have "{p \<in> ptree_rm (m \<bind> f). sprefix p bs} = {p@q}"
+  hence "cprefix (p@q) bs"
+    unfolding cprefix_def by (metis length_append ctake_add)
+  ultimately have "{p \<in> ptree_rm (m \<bind> f). cprefix p bs} = {p@q}"
     by (intro prefixes_singleton) auto
   thus ?thesis
     unfolding consumed_prefix_def by simp
@@ -119,9 +119,9 @@ lemma track_rb_bind:
   assumes "wf_random m"
   assumes "\<And>x. x \<in> range_rm m \<Longrightarrow> wf_random (f x)"
   shows "track_random_bits (m \<bind> f) = track_random_bits m \<bind>
-  (\<lambda>(r,n). track_random_bits (f r) \<bind> (\<lambda>(r',m). return_rm (r',n+m)))" (is "?L = ?R")
+  (\<lambda>(r,n). track_random_bits (f r) \<bind> (\<lambda>(r',m). return_rai (r',n+m)))" (is "?L = ?R")
 proof (rule ext)
-  fix bs :: "bool stream"
+  fix bs :: "coin_stream"
   have wf_bind: "wf_random (m \<bind> f)"
     by (intro wf_bind assms)
 
@@ -131,45 +131,45 @@ proof (rule ext)
   proof (cases)
     case a
     thus ?thesis 
-      unfolding track_random_bits_def bind_rm_def a by simp
+      unfolding track_random_bits_def bind_rai_def a by simp
   next
     case b
     then obtain r bs' where 0:"m bs = Some (r,bs')" by auto
-    have 1:"(f r) bs' = None" using b unfolding bind_rm_def 0 by simp
-    then show ?thesis  unfolding track_random_bits_def bind_rm_def 0 by simp
+    have 1:"(f r) bs' = None" using b unfolding bind_rai_def 0 by simp
+    then show ?thesis  unfolding track_random_bits_def bind_rai_def 0 by simp
   next
     case c
     have "(m \<bind> f) bs  = None" if "m bs = None"
-      using that unfolding bind_rm_def by simp
+      using that unfolding bind_rai_def by simp
     hence "m bs \<noteq> None" using c by blast
     then obtain p where 0: 
-      "m bs = Some (eval_rm m p, sdrop (length p) bs)" "consumed_prefix m bs = Some p"
+      "m bs = Some (eval_rm m p, cdrop (length p) bs)" "consumed_prefix m bs = Some p"
       using wf_random_alt[OF assms(1)] by auto
-    define bs' where "bs' = sdrop (length p) bs"
+    define bs' where "bs' = cdrop (length p) bs"
     define r where "r = eval_rm m p"
     have 1: "m bs = Some (r, bs')" unfolding 0 r_def bs'_def by simp
     hence "r \<in> range_rm m" using 1 in_range_rmI by metis
     hence wf: "wf_random (f r)" by (intro assms(2))
-    have "f r bs' \<noteq> None" using c 1 unfolding bind_rm_def by force
+    have "f r bs' \<noteq> None" using c 1 unfolding bind_rai_def by force
     then obtain q where 2: 
-      "f r bs' = Some (eval_rm (f r) q, sdrop (length q) bs')" "consumed_prefix (f r) bs' = Some q"
+      "f r bs' = Some (eval_rm (f r) q, cdrop (length q) bs')" "consumed_prefix (f r) bs' = Some q"
       using wf_random_alt[OF wf] by auto
 
     hence 3:"consumed_prefix (m \<bind> f) bs = Some (p@q)"
       unfolding r_def bs'_def by (intro consumed_prefix_bindI 0) auto
 
     have "track_random_bits m bs = Some ((r, length p), bs')"
-      unfolding track_random_bits_alt[OF assms(1)] bind_rm_def 0 bs'_def r_def by simp
+      unfolding track_random_bits_alt[OF assms(1)] bind_rai_def 0 bs'_def r_def by simp
     moreover have "track_random_bits (f r) bs' = 
-      Some ((eval_rm (f r) q, length q), sdrop (length q) bs')"
+      Some ((eval_rm (f r) q, length q), cdrop (length q) bs')"
       unfolding track_random_bits_alt[OF wf] 2 by simp
     moreover have "wf_on_prefix m p r"
       unfolding r_def by (intro consumed_prefix_imp_wf[OF 0(2)])
     hence "eval_rm (f r) q = eval_rm (m \<bind> f) (p@q)"
-      unfolding eval_rm_def bind_rm_def wf_on_prefix_def by simp
+      unfolding eval_rm_def bind_rai_def wf_on_prefix_def by simp
     ultimately have 
-      "?R bs = Some ((eval_rm (m \<bind> f) (p@q), length p+length q), sdrop (length p+length q) bs)"
-      unfolding bind_rm_def return_rm_def bs'_def by simp
+      "?R bs = Some ((eval_rm (m \<bind> f) (p@q), length p+length q), cdrop (length p+length q) bs)"
+      unfolding bind_rai_def return_rai_def bs'_def by simp
     also have "... = ?L bs"
       unfolding track_random_bits_alt[OF wf_bind] 3 by simp
     finally show ?thesis by simp
@@ -178,26 +178,26 @@ qed
 
 lemma track_random_bits_mono:
   assumes "wf_random f" "wf_random g"
-  assumes "ord_rm f g"
-  shows "ord_rm (track_random_bits f) (track_random_bits g)"
+  assumes "ord_rai f g"
+  shows "ord_rai (track_random_bits f) (track_random_bits g)"
 proof -
   have "track_random_bits f bs = track_random_bits g bs"
     if "track_random_bits f bs \<noteq> None" for bs
   proof -
     have "f bs \<noteq> None" using that track_random_bits_Some_iff by simp
     then obtain r bs' where "f bs = Some (r,bs')" by auto
-    then obtain p where 0:"wf_on_prefix f p r" and 2:"sprefix p bs"
+    then obtain p where 0:"wf_on_prefix f p r" and 2:"cprefix p bs"
       using assms(1) unfolding wf_random_def by (auto split:option.split_asm)
 
     have 1: "wf_on_prefix g p r"
       using wf_lub_helper[OF assms(3)] 0 by blast
 
-    have "track_random_bits h bs = Some ((r, length p),sdrop (length p) bs)"
+    have "track_random_bits h bs = Some ((r, length p),cdrop (length p) bs)"
       if "wf_on_prefix h p r" "wf_random h" for h
     proof -
       have "p \<in> ptree_rm h"
         using that unfolding ptree_rm_def by auto
-      hence "{p \<in> ptree_rm h. sprefix p bs} = {p}"
+      hence "{p \<in> ptree_rm h. cprefix p bs} = {p}"
         using 2 by (intro prefixes_singleton) auto
       hence "consumed_prefix h bs = Some p"
         unfolding consumed_prefix_def by simp
@@ -211,7 +211,7 @@ proof -
       using 0 1 assms(1,2) by simp
   qed
   thus ?thesis
-    unfolding ord_rm_def fun_ord_def flat_ord_def by blast
+    unfolding ord_rai_def fun_ord_def flat_ord_def by blast
 qed
 
 lemma wf_track_random_bits:
@@ -223,68 +223,68 @@ proof (rule wf_randomI)
   hence "f bs \<noteq> None" using track_random_bits_Some_iff by blast
   then obtain r bs' where "f bs = Some (r, bs')"
     by auto
-  then obtain p where 0:"wf_on_prefix f p r" "sprefix p bs"
+  then obtain p where 0:"wf_on_prefix f p r" "cprefix p bs"
     using assms unfolding wf_random_def by (auto split:option.split_asm) 
-  hence "{q \<in> ptree_rm f. sprefix q (p @- cs)} = {p}" for cs
-    by (intro prefixes_singleton) (auto simp:sprefix_def ptree_rm_def)
-  hence "consumed_prefix f (p @- cs) = Some p" for cs
+  hence "{q \<in> ptree_rm f. cprefix q (cshift p cs)} = {p}" for cs
+    by (intro prefixes_singleton) (auto simp:cprefix_def ptree_rm_def)
+  hence "consumed_prefix f (cshift p cs) = Some p" for cs
     unfolding consumed_prefix_def by simp
   hence "wf_on_prefix (track_random_bits f) p (r, length p)"
     using 0 unfolding track_random_bits_def wf_on_prefix_def consumed_bits_def by simp
-  thus "\<exists>p r. sprefix p bs \<and> wf_on_prefix (track_random_bits f) p r"
+  thus "\<exists>p r. cprefix p bs \<and> wf_on_prefix (track_random_bits f) p r"
     using 0 by auto
 qed
 
-lemma track_random_bits_lub_rm:
-  assumes "Complete_Partial_Order.chain ord_rm A"
+lemma track_random_bits_lub_rai:
+  assumes "Complete_Partial_Order.chain ord_rai A"
   assumes "\<And>r. r \<in> A \<Longrightarrow> wf_random r"
-  shows "track_random_bits (lub_rm A) = lub_rm (track_random_bits ` A)" (is "?L = ?R")
+  shows "track_random_bits (lub_rai A) = lub_rai (track_random_bits ` A)" (is "?L = ?R")
 proof -
-  have 0:"Complete_Partial_Order.chain ord_rm (track_random_bits ` A)"
+  have 0:"Complete_Partial_Order.chain ord_rai (track_random_bits ` A)"
     by (intro chain_imageI[OF assms(1)] track_random_bits_mono assms(2))
 
   have "?L bs = ?R bs" if "?L bs \<noteq> None" for bs
   proof -
-    have 1:"lub_rm A bs \<noteq> None" using that track_random_bits_Some_iff by simp
-    have "lub_rm A bs = None" if "\<And>f. f \<in> A \<Longrightarrow> f bs = None"
-      using that unfolding lub_rm_def fun_lub_def flat_lub_def by auto
+    have 1:"lub_rai A bs \<noteq> None" using that track_random_bits_Some_iff by simp
+    have "lub_rai A bs = None" if "\<And>f. f \<in> A \<Longrightarrow> f bs = None"
+      using that unfolding lub_rai_def fun_lub_def flat_lub_def by auto
     then obtain f where f_in_A: "f \<in> A" and "f bs \<noteq> None"
       using 1 by blast
     hence "consumed_prefix f bs \<noteq> None"
       using consumed_prefix_none_iff[OF assms(2)[OF f_in_A]] by simp
     hence 2:"track_random_bits f bs \<noteq> None"
       unfolding track_random_bits_alt[OF assms(2)[OF f_in_A]] by simp
-    have "ord_rm (track_random_bits f) (track_random_bits (lub_rm A))"
+    have "ord_rai (track_random_bits f) (track_random_bits (lub_rai A))"
       by (intro track_random_bits_mono wf_lub[OF assms(1)] assms(2) 
-          random_monad_pd.lub_upper[OF assms(1)] f_in_A)
-    hence "track_random_bits (lub_rm A) bs = track_random_bits f bs"
-      using 2 unfolding ord_rm_def fun_ord_def flat_ord_def by metis
+          random_alg_int_pd.lub_upper[OF assms(1)] f_in_A)
+    hence "track_random_bits (lub_rai A) bs = track_random_bits f bs"
+      using 2 unfolding ord_rai_def fun_ord_def flat_ord_def by metis
 
-    moreover have "ord_rm (track_random_bits f) (lub_rm (track_random_bits ` A))"
-      using f_in_A by (intro random_monad_pd.lub_upper[OF 0]) auto
-    hence "lub_rm (track_random_bits ` A) bs = track_random_bits f bs"
-      using 2 unfolding ord_rm_def fun_ord_def flat_ord_def by metis
+    moreover have "ord_rai (track_random_bits f) (lub_rai (track_random_bits ` A))"
+      using f_in_A by (intro random_alg_int_pd.lub_upper[OF 0]) auto
+    hence "lub_rai (track_random_bits ` A) bs = track_random_bits f bs"
+      using 2 unfolding ord_rai_def fun_ord_def flat_ord_def by metis
     ultimately show ?thesis by simp
   qed
   hence "flat_ord None (?L bs) (?R bs)" for bs
     unfolding flat_ord_def by blast
-  hence "ord_rm ?L ?R"
-    unfolding ord_rm_def fun_ord_def by simp
-  moreover have "ord_rm (track_random_bits f) (track_random_bits (lub_rm A))" if "f \<in> A" for f
+  hence "ord_rai ?L ?R"
+    unfolding ord_rai_def fun_ord_def by simp
+  moreover have "ord_rai (track_random_bits f) (track_random_bits (lub_rai A))" if "f \<in> A" for f
     using that assms(2) wf_lub[OF assms(1,2)]
-    by (intro track_random_bits_mono random_monad_pd.lub_upper[OF assms(1)])
-  hence "ord_rm ?R ?L"
-    by (intro random_monad_pd.lub_least 0) auto
+    by (intro track_random_bits_mono random_alg_int_pd.lub_upper[OF assms(1)])
+  hence "ord_rai ?R ?L"
+    by (intro random_alg_int_pd.lub_least 0) auto
   ultimately show ?thesis
-    using random_monad_pd.leq_antisym by auto
+    using random_alg_int_pd.leq_antisym by auto
 qed
 
 lemma untrack_random_bits:
   assumes "wf_random f"
-  shows "track_random_bits f \<bind> (\<lambda>x. return_rm (fst x)) = f" (is "?L = ?R")
+  shows "track_random_bits f \<bind> (\<lambda>x. return_rai (fst x)) = f" (is "?L = ?R")
 proof -
   have "?L bs = ?R bs" for bs
-    unfolding track_random_bits_alt[OF assms] bind_rm_def return_rm_def
+    unfolding track_random_bits_alt[OF assms] bind_rai_def return_rai_def
     by (subst wf_random_alt[OF assms]) (cases "consumed_prefix f bs", auto) 
   thus ?thesis
     by auto
@@ -354,19 +354,19 @@ lemma track_coin_use_lub:
   assumes "Complete_Partial_Order.chain ord_ra A"
   shows "track_coin_use (lub_ra A) = lub_ra (track_coin_use ` A)" (is "?L = ?R")
 proof -
-  have 0: "Complete_Partial_Order.chain ord_rm (Rep_random_alg ` A)"
+  have 0: "Complete_Partial_Order.chain ord_rai (Rep_random_alg ` A)"
     using assms unfolding ord_ra.rep_eq Complete_Partial_Order.chain_def by auto
 
   have 2: "(Rep_random_alg ` track_coin_use ` A) = track_random_bits ` Rep_random_alg ` A"
     using track_coin_use.rep_eq unfolding image_image by auto
 
-  have 1: "Complete_Partial_Order.chain ord_rm (Rep_random_alg ` track_coin_use ` A)"
+  have 1: "Complete_Partial_Order.chain ord_rai (Rep_random_alg ` track_coin_use ` A)"
     using wf_rep_rand_alg unfolding 2 by (intro chain_imageI[OF 0] track_random_bits_mono) auto
 
-  have "Rep_random_alg ?L = track_random_bits (lub_rm (Rep_random_alg ` A))"
+  have "Rep_random_alg ?L = track_random_bits (lub_rai (Rep_random_alg ` A))"
     using 0 unfolding track_coin_use.rep_eq lub_ra.rep_eq by simp
-  also have "... = lub_rm (track_random_bits ` Rep_random_alg ` A)"
-    using wf_rep_rand_alg by (intro track_random_bits_lub_rm 0) auto
+  also have "... = lub_rai (track_random_bits ` Rep_random_alg ` A)"
+    using wf_rep_rand_alg by (intro track_random_bits_lub_rai 0) auto
   also have "... = Rep_random_alg ?R"
     using 1 unfolding lub_ra.rep_eq 2 by simp
   finally have "Rep_random_alg ?L = Rep_random_alg ?R"
@@ -380,17 +380,17 @@ lemma track_coin_use_mono:
   shows "ord_ra (track_coin_use f) (track_coin_use g)"
   using assms by transfer (rule track_random_bits_mono)
 
-lemma bind_mono_aux_rac:
+lemma bind_mono_tra_aux:
   assumes "ord_ra f1 f2" "\<And>y. ord_ra (g1 y) (g2 y)"
   shows "ord_ra (bind_tra f1 g1) (bind_tra f2 g2)"
-  using assms bind_mono_aux  unfolding bind_tra_def ord_ra.rep_eq bind_ra.rep_eq 
-  by (auto intro!:bind_mono_aux random_monad_pd.leq_refl 
+  using assms unfolding bind_tra_def ord_ra.rep_eq bind_ra.rep_eq 
+  by (auto intro!:bind_rai_mono random_alg_int_pd.leq_refl 
       simp:comp_def bind_ra.rep_eq case_prod_beta' return_ra.rep_eq)
 
-lemma bind_mono_rac [partial_function_mono]:
+lemma bind_tra_mono [partial_function_mono]:
   assumes "mono_ra B" and "\<And>y. mono_ra (C y)"
   shows "mono_ra (\<lambda>f. bind_tra (B f) (\<lambda>y. C y f))"
-  using assms by (intro monotoneI bind_mono_aux_rac) (auto simp:monotone_def)
+  using assms by (intro monotoneI bind_mono_tra_aux) (auto simp:monotone_def)
 
 lemma track_coin_use_empty: 
   "track_coin_use (lub_ra {}) = (lub_ra {})" (is "?L = ?R")

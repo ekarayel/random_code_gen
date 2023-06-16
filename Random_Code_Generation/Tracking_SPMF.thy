@@ -347,12 +347,12 @@ proof -
   let ?p = "Rep_random_alg p"
 
   have "measure_pmf (map_spmf snd (tspmf_of_ra p)) =
-    distr (measure_rm (track_random_bits ?p)) \<D> (map_option snd)"
+    distr (distr_rai (track_random_bits ?p)) \<D> (map_option snd)"
     unfolding tspmf_of_ra_def map_pmf_rep_eq spmf_of_ra.rep_eq comp_def track_coin_use.rep_eq 
     by simp
   also have "... = distr \<B> \<D> (map_option snd \<circ> (map_option fst \<circ> track_random_bits ?p))"
-    unfolding measure_rm_def 
-    by (intro distr_distr measure_rm_measurable wf_track_random_bits wf_rep_rand_alg) simp 
+    unfolding distr_rai_def 
+    by (intro distr_distr distr_rai_measurable wf_track_random_bits wf_rep_rand_alg) simp 
   also have "... = distr \<B> \<D> (\<lambda>x. ?p x \<bind> (\<lambda>xa. consumed_bits ?p x))"
     unfolding track_random_bits_def by (simp add:comp_def map_option_bind case_prod_beta)
   also have "... = distr \<B> \<D> (\<lambda>x. consumed_bits ?p x)"

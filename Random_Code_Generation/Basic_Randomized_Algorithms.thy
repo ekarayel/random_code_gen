@@ -101,17 +101,16 @@ partial_function (random_alg) bernoulli_ra :: "real \<Rightarrow> bool random_al
 declare bernoulli_ra.simps[code]
 
 text \<open>The following is a different technique to show equivalence of an SPMF with a randomized
-algorithm. It only works well if the SPMF has weight 1. First we show that the SPMF is a lower
+algorithm. It only works if the SPMF has weight 1. First we show that the SPMF is a lower
 bound:\<close>
 
 lemma bernoulli_ra_correct_aux: "ord_spmf (=) (bernoulli x) (spmf_of_ra (bernoulli_ra x))"
 proof (induction arbitrary:x rule:bernoulli.fixp_induct)
   case 1
-  thus "spmf.admissible (\<lambda>bernoulli. \<forall>x. ord_spmf (=) (bernoulli x) (spmf_of_ra (bernoulli_ra x)))" 
-    by simp
+  thus ?case by simp
 next
   case 2
-  thus "ord_spmf (=) (return_pmf None) (spmf_of_ra (bernoulli_ra x))" by simp
+  thus ?case by simp
 next
   case (3 p)
   thus ?case by (subst bernoulli_ra.simps)
@@ -119,6 +118,7 @@ next
 qed
 
 text \<open>Then relying on the fact that the SPMF has weight one, we can derive equivalence:\<close>
+
 lemma bernoulli_ra_correct: "bernoulli x = spmf_of_ra (bernoulli_ra x)"
   using lossless_bernoulli weight_spmf_le_1 unfolding lossless_spmf_def
   by (intro eq_iff_ord_spmf[OF _ bernoulli_ra_correct_aux]) auto 
@@ -143,7 +143,7 @@ lemma bernoulli_ra_transfer [transfer_rule]:
 
 end
 
-text \<open>Using the randomized algorithm for the bernoulli destribution, we can introduce one for the 
+text \<open>Using the randomized algorithm for the Bernoulli distribution, we can introduce one for the 
 general geometric distribution:\<close>
 
 partial_function (random_alg) geometric_ra :: "real \<Rightarrow> nat random_alg" where
@@ -200,8 +200,11 @@ proof -
     by (simp flip:map_spmf_of_pmf add:spmf_of_ra_map)
 qed
 
-value "run_ra (binomial_ra 10 0.5) (random_bits 42)"
+text \<open>Runinng randomized algorithms. Here we use the PCG introduced in 
+Section~\ref{sec:permuted_congruential_generator}.\<close>
 
-value "run_ra (replicate_ra 20 (bernoulli_ra 0.1)) (random_bits 82)"
+value "run_ra (binomial_ra 10 0.5) (random_coins 42)"
+
+value "run_ra (replicate_ra 20 (bernoulli_ra 0.3)) (random_coins 42)"
 
 end
