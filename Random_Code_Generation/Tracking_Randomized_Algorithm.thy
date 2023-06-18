@@ -1,4 +1,4 @@
-section \<open>Tracking Randomized Algorithms\<close>
+section \<open>Tracking Randomized Algorithms\label{sec:tracking_randomized_algorithm}\<close>
 
 text \<open>This section introduces the @{term "track_random_bits"} monad morphism, which converts a
 randomized algorithm to one that tracks the number of used coin-flips. The resulting algorithm

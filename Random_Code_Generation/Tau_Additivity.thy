@@ -6,7 +6,7 @@ begin
 
 text \<open>In this section we show $\tau$-additivity for measures, that are compatible with a 
 second-countable topology. This will be essential for the verification of the Scott-continuity
-of the monad morphisms. To understand the propery, let us recall that for general countable chains 
+of the monad morphisms. To understand the property, let us recall that for general countable chains 
 of measurable sets, it is possible to deduce that the supremum
 of the measures of the sets is equal to the measure of the union of the family:
 \[

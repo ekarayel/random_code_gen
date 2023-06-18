@@ -13,7 +13,7 @@ theory Basic_Randomized_Algorithms
 begin
 
 text \<open>A simple example: Here we define a randomized algorithm that can sample uniformly from
-@{term "pmf_of_set {..<2^n}"}. (The same problem for general ranges is discussed in 
+@{term "pmf_of_set {..<(2::nat)^n}"}. (The same problem for general ranges is discussed in 
 Section~\ref{sec:dice_roll}).\<close>
 
 fun binary_dice_roll :: "nat \<Rightarrow> nat random_alg"

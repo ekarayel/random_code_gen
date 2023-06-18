@@ -11,8 +11,8 @@ theory Randomized_Algorithm_Internal
 begin
 
 text \<open>This section introduces the internal representation for randomized algorithms. For ease of
-use, we also introduce (in Section~\ref{sec:randomized_algorithm} a @{command "typedef"} for the 
-monad which is intended for users of this library.\<close>
+use, we will introduce in Section~\ref{sec:randomized_algorithm} a @{command "typedef"} for the 
+monad which is easier to work with.\<close>
 
 text \<open>This is the inverse of @{term "set_option"}\<close>
 
@@ -50,7 +50,7 @@ lemma the_elem_opt_None_iff[simp]: "at_most_one S \<Longrightarrow> the_elem_opt
   by (induction S rule:at_most_one_cases) auto
 
 text \<open>The following is the fundamental type of the randomized algorithms, which are represented
-as functions that take a infinite stream of coin flips and return the unused suffix of coin-flips
+as functions that take an infinite stream of coin flips and return the unused suffix of coin-flips
 together with the result. We use the @{typ "'a option"} type to be able to introduce the
 denotational semantics for the monad.\<close>
 
