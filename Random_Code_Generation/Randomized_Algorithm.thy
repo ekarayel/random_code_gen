@@ -1,4 +1,4 @@
-section \<open>Randomized Algorithms\<close>
+section \<open>Randomized Algorithms\label{sec:randomized_algorithm}\<close>
 
 text \<open>This section introduces the @{term "random_alg"} monad, that can be used to represent 
 executable randomized algorithms. It is a type-definition based on the internal representation from 

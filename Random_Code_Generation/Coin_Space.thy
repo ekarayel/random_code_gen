@@ -1,3 +1,8 @@
+section \<open>Coin Flip Space\<close>
+
+text \<open>In this section, we introduce the coin flip space, an infinite lazy stream of booleans and
+introduce a probability measure and topology for the space.\<close>
+
 theory Coin_Space
   imports 
     "HOL-Probability.Probability" 
@@ -202,8 +207,8 @@ lemma snth_to_stream: "snth (to_stream x) = x"
 
 lemma (in prob_space) branch_stream_space:
   "(\<lambda>(x, y). stake n x @- y) \<in> stream_space M \<Otimes>\<^sub>M stream_space M \<rightarrow>\<^sub>M stream_space M"
-  "distr (stream_space M \<Otimes>\<^sub>M stream_space M) (stream_space M) (\<lambda>(x,y). stake n x@-y)=stream_space M" 
-    (is "?L = ?R")
+  "distr (stream_space M \<Otimes>\<^sub>M stream_space M) (stream_space M) (\<lambda>(x,y). stake n x@-y) 
+    = stream_space M" (is "?L = ?R")
 proof -
   let ?T = "stream_space M"
   let ?S = "PiM UNIV (\<lambda>_. M)"
@@ -237,6 +242,10 @@ proof -
   finally show "?L = ?R"
     by simp
 qed
+
+text \<open>The type for the coin flip space is isomorphic to @{typ "bool stream"}. Nevertheless, we 
+introduce it as a separate type to be able to introduce a topology and mark it as a lazy type for 
+code-generation:\<close>
 
 codatatype coin_stream = Coin (chd:bool) (ctl:coin_stream)
 
@@ -386,7 +395,7 @@ next
   finally show ?thesis by simp
 qed
 
-text \<open>Stream version of @{thm [source] prefix_length_prefix}\<close>
+text \<open>Stream version of @{thm [source] prefix_length_prefix}:\<close>
 
 lemma cprefix_length_prefix:
   assumes "length x \<le> length y"
@@ -547,7 +556,6 @@ unbundle coin_space_notation
 lemma space_coin_space: "space \<B> = UNIV"
   using bij_is_surj[OF bij_to_coins]
   unfolding coin_space_def space_embed_measure space_stream_space by simp
-
 
 lemma B_t_eq_distr: "\<B> = distr (stream_space (pmf_of_set UNIV)) \<B> to_coins"
   unfolding coin_space_def by (intro embed_measure_eq_distr bij_is_inj[OF bij_to_coins])

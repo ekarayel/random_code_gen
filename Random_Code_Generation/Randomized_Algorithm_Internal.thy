@@ -1,19 +1,18 @@
 section \<open>Randomized Algorithms (Internal Representation)\label{sec:randomized_algorithm_internal}\<close>
 
-text \<open>This section introduces the internal representation for randomized algorithms. For ease of
-use, we also introduce a @{term "typedef"} for the monad which is intended for users of this
-library.\<close>
-
 theory Randomized_Algorithm_Internal
   imports
     "HOL-Probability.Probability" 
-    "HOL-Library.Extended_Nat"
     "Coin_Space"
     "Tau_Additivity"
     "Zeta_Function.Zeta_Library"
     (* The last import is to pull set_nn_integral_cong which should be in
     HOL-Analysis.Set_Integral. *)
 begin
+
+text \<open>This section introduces the internal representation for randomized algorithms. For ease of
+use, we also introduce (in Section~\ref{sec:randomized_algorithm} a @{command "typedef"} for the 
+monad which is intended for users of this library.\<close>
 
 text \<open>This is the inverse of @{term "set_option"}\<close>
 
@@ -51,9 +50,9 @@ lemma the_elem_opt_None_iff[simp]: "at_most_one S \<Longrightarrow> the_elem_opt
   by (induction S rule:at_most_one_cases) auto
 
 text \<open>The following is the fundamental type of the randomized algorithms, which are represented
-as function that take a infinite stream of coin flips and return the unused remainder together
-with the result. We use the @{typ "'a option"} type to be able to introduce the denotational-
-semantics for the monad.\<close>
+as functions that take a infinite stream of coin flips and return the unused suffix of coin-flips
+together with the result. We use the @{typ "'a option"} type to be able to introduce the
+denotational semantics for the monad.\<close>
 
 type_synonym 'a random_alg_int = "coin_stream \<Rightarrow> ('a \<times> coin_stream) option"
 
@@ -63,7 +62,7 @@ entire stream together with the result.\<close>
 definition return_rai :: "'a \<Rightarrow> 'a random_alg_int"
   where "return_rai x bs = Some (x, bs)"
 
-text \<open>The @{term "bind_rai"} combinator, passes the coin-flips to the first algorithm, then passes 
+text \<open>The @{term "bind_rai"} combinator passes the coin-flips to the first algorithm, then passes 
 the remaining coin flips to the second function, and returns the unused coin-flips from both 
 steps.\<close>
 
@@ -83,9 +82,10 @@ tail of the coin flips are returned as unused.\<close>
 definition coin_rai :: "bool random_alg_int"
   where "coin_rai bs = Some (chd bs, ctl bs)"
 
-text \<open>This representation is similar to the model proposed by Hurd~\cite{hurd2003formal}, although
-we were not aware of the technical report, when initially considering this representation. It is 
-also closely related to the construction of parser monads in functional languages~\cite{hutton1998}.
+text \<open>This representation is similar to the model proposed by Hurd~\cite{hurd2003formal}
+\footnote{Although we were not aware of the technical report, when initially considering this
+representation.}. It is also closely related to the construction of parser monads in functional 
+languages~\cite{hutton1998}.
 
 We also had following alternatives considered, with various advantages and drawbacks:
 
@@ -106,7 +106,8 @@ model has the dis-advantage that the resulting `'monad'', does not fulfill the a
 Moreover many PRG's are designed and tested in the streaming sense, and there is not a lot of
 research into the performance of PRGs with tree structured output. (A related idea was to still
 use a stream as input, and split it into two sub-streams for example by the parity of the stream
-position.)
+position. This alternative also suffers from the lack of associativity problem and may lead to
+a lot of unused coin flips.)
 \end{itemize}
 
 Another reason for using the formalized representation is compatibility with
@@ -514,6 +515,9 @@ proof (intro contionuos_into_option_udI)
     by simp
 qed
 
+text \<open>Randomized algorithms are continuous with respect to the product topology on the domain
+and the upper topology on the range.\<close>
+
 lemma f_continuous: 
   assumes wf:"wf_random f"
   shows "continuous_map euclidean option_ud (map_option fst \<circ> f)"
@@ -628,6 +632,9 @@ qed
 lemma prob_space_distr_rai:
   "prob_space (distr_rai f)"
   unfolding distr_rai_def by (intro coin_space.prob_space_distr distr_rai_measurable)
+
+text \<open>This is the central correctness property for the monad. The returned stream of coins
+is independent of the result of the randomized algorithm.\<close>
 
 lemma remainder_indep: 
   "distr R (\<D> \<Otimes>\<^sub>M \<B>) (the \<circ> f) = distr R \<D> (fst \<circ> the \<circ> f) \<Otimes>\<^sub>M \<B>"

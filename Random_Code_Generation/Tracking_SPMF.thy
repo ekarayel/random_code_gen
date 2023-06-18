@@ -66,14 +66,12 @@ end
 
 unbundle ord_tspmf_notation
 
-definition consumption :: "'a tspmf \<Rightarrow> enat pmf"
-  where "consumption = map_pmf (\<lambda>x. case x of None \<Rightarrow> \<infinity> | Some y \<Rightarrow> enat (snd y))"
+definition coin_usage_of_tspmf :: "'a tspmf \<Rightarrow> enat pmf"
+  where "coin_usage_of_tspmf = map_pmf (\<lambda>x. case x of None \<Rightarrow> \<infinity> | Some y \<Rightarrow> enat (snd y))"
 
-definition consumption_real :: "'a tspmf \<Rightarrow> ennreal pmf"
-  where "consumption_real p = map_pmf ennreal_of_enat (consumption p)"
-
-definition expected_consumption :: "'a tspmf \<Rightarrow> ennreal"
-  where "expected_consumption p = (\<integral>\<^sup>+x. x \<partial>(consumption_real p))"
+definition expected_coin_usage_of_tspmf :: "'a tspmf \<Rightarrow> ennreal"
+  where 
+    "expected_coin_usage_of_tspmf p = (\<integral>\<^sup>+x. x \<partial>(map_pmf ennreal_of_enat (coin_usage_of_tspmf p)))"
 
 definition expected_coin_usage_of_ra where 
   "expected_coin_usage_of_ra p = \<integral>\<^sup>+x. x \<partial>(map_pmf ennreal_of_enat (coin_usage_of_ra p))"
@@ -81,55 +79,56 @@ definition expected_coin_usage_of_ra where
 definition result :: "'a tspmf \<Rightarrow> 'a spmf"
   where "result = map_spmf fst"
 
-lemma consumption_alt_def:
-  "consumption p = map_pmf (\<lambda>x. case x of None \<Rightarrow> \<infinity> | Some y \<Rightarrow> enat y) (map_spmf snd p)"
-  unfolding consumption_def map_pmf_comp map_option_case 
+lemma coin_usage_of_tspmf_alt_def:
+  "coin_usage_of_tspmf p = map_pmf (\<lambda>x. case x of None \<Rightarrow> \<infinity> | Some y \<Rightarrow> enat y) (map_spmf snd p)"
+  unfolding coin_usage_of_tspmf_def map_pmf_comp map_option_case 
   by (metis enat_def infinity_enat_def option.case_eq_if option.sel)
 
-lemma consumption_bind_return:
-  "consumption (bind_tspmf f (\<lambda>x. return_tspmf (g x))) = (consumption f)"
-  unfolding bind_tspmf_def return_tspmf_def consumption_alt_def map_spmf_bind_spmf
+lemma coin_usage_of_tspmf_bind_return:
+  "coin_usage_of_tspmf (bind_tspmf f (\<lambda>x. return_tspmf (g x))) = (coin_usage_of_tspmf f)"
+  unfolding bind_tspmf_def return_tspmf_def coin_usage_of_tspmf_alt_def map_spmf_bind_spmf
   by (simp add:comp_def case_prod_beta map_spmf_conv_bind_spmf)
 
-lemma consumption_mono:
+lemma coin_usage_of_tspmf_mono:
   assumes "ord_tspmf p q"
-  shows "measure (consumption p) {..k} \<le> measure (consumption q) {..k}"
+  shows "measure (coin_usage_of_tspmf p) {..k} \<le> measure (coin_usage_of_tspmf q) {..k}"
 proof -
   define p' where "p' = map_spmf snd p" 
   define q' where "q' = map_spmf snd q" 
   have 0:"ord_spmf (\<ge>) p' q'"
     using assms(1) ord_spmf_mono unfolding p'_def q'_def ord_tspmf_def ord_spmf_map_spmf12 by fastforce
 
-  have cp:"consumption p = map_pmf (case_option \<infinity> enat) p'"
-    unfolding consumption_alt_def p'_def by simp
-  have cq:"consumption q = map_pmf (case_option \<infinity> enat) q'"
-    unfolding consumption_alt_def q'_def by simp
+  have cp:"coin_usage_of_tspmf p = map_pmf (case_option \<infinity> enat) p'"
+    unfolding coin_usage_of_tspmf_alt_def p'_def by simp
+  have cq:"coin_usage_of_tspmf q = map_pmf (case_option \<infinity> enat) q'"
+    unfolding coin_usage_of_tspmf_alt_def q'_def by simp
 
-  have 0:"rel_pmf (\<ge>) (consumption p) (consumption q)"
+  have 0:"rel_pmf (\<ge>) (coin_usage_of_tspmf p) (coin_usage_of_tspmf q)"
     unfolding cp cq map_pmf_def by (intro rel_pmf_bindI[OF 0]) (auto split:option.split)
   show ?thesis
     unfolding atMost_def by (intro measure_Ici[OF 0] transp_ge) (simp add:reflp_def) 
 qed
 
-lemma consumption_mono_rev:
+lemma coin_usage_of_tspmf_mono_rev:
   assumes "ord_tspmf p q"
-  shows "measure (consumption q) {x. x > k} \<le> measure (consumption p) {x. x > k}" (is "?L \<le> ?R")
+  shows "measure (coin_usage_of_tspmf q) {x. x > k} \<le> measure (coin_usage_of_tspmf p) {x. x > k}" 
+    (is "?L \<le> ?R")
 proof -
   have 0:"UNIV - {x. x > k} = {..k}"
     by (auto simp add:set_diff_eq set_eq_iff)
   have "1 - ?R \<le> 1 - ?L"
-    using consumption_mono[OF assms]
+    using coin_usage_of_tspmf_mono[OF assms]
     by (subst (1 2) measure_pmf.prob_compl[symmetric]) (auto simp:0)
   thus ?thesis
     by simp
 qed
 
-lemma expected_consumption:
-  "expected_consumption p = (\<Sum>k. ennreal (measure (consumption p) {x. x > enat k}))" (is "?L = ?R")
+lemma expected_coin_usage_of_tspmf:
+  "expected_coin_usage_of_tspmf p = (\<Sum>k. ennreal (measure (coin_usage_of_tspmf p) {x. x > enat k}))" (is "?L = ?R")
 proof -
-  have "?L = integral\<^sup>N (measure_pmf (consumption p)) ennreal_of_enat"
-    unfolding expected_consumption_def consumption_real_def by simp
-  also have "... = (\<Sum>k. emeasure (measure_pmf (consumption p)) {x. enat k < x})"
+  have "?L = integral\<^sup>N (measure_pmf (coin_usage_of_tspmf p)) ennreal_of_enat"
+    unfolding expected_coin_usage_of_tspmf_def by simp
+  also have "... = (\<Sum>k. emeasure (measure_pmf (coin_usage_of_tspmf p)) {x. enat k < x})"
     by (subst nn_integral_enat_function) auto
   also have "... = ?R"
     by (subst measure_pmf.emeasure_eq_measure) simp
@@ -172,28 +171,28 @@ lemma ord_tspmf_bind_tspmf:
   using assms unfolding bind_tspmf_def ord_tspmf_def
   by (intro ord_spmf_bind_reflI) (simp add:case_prod_beta ord_spmf_map_spmf12)
 
-definition consume :: "nat  \<Rightarrow> 'a tspmf \<Rightarrow> 'a tspmf"
-  where "consume k = map_spmf (apsnd ((+) k))"
+definition use_coins :: "nat \<Rightarrow> 'a tspmf \<Rightarrow> 'a tspmf"
+  where "use_coins k = map_spmf (apsnd ((+) k))"
 
-lemma consume_add:
-  "consume k (consume s f) = consume (k+s) f"
-  unfolding consume_def spmf.map_comp 
+lemma use_coins_add:
+  "use_coins k (use_coins s f) = use_coins (k+s) f"
+  unfolding use_coins_def spmf.map_comp 
   by (simp add:comp_def apsnd_def map_prod_def case_prod_beta' algebra_simps)
 
 lemma coin_tspmf_split:
   fixes f :: "bool \<Rightarrow> 'b tspmf"
-  shows "(coin_tspmf \<bind> f) = consume 1 (coin_spmf \<bind> f)"
-  unfolding coin_tspmf_def consume_def map_spmf_conv_bind_spmf pair_spmf_alt_def bind_tspmf_def
+  shows "(coin_tspmf \<bind> f) = use_coins 1 (coin_spmf \<bind> f)"
+  unfolding coin_tspmf_def use_coins_def map_spmf_conv_bind_spmf pair_spmf_alt_def bind_tspmf_def
   by (simp)
 
-lemma ord_tspmf_consume:
-  "ord_tspmf (consume k p) p"
-  unfolding consume_def by (intro ord_tspmf_map_spmf) auto
+lemma ord_tspmf_use_coins:
+  "ord_tspmf (use_coins k p) p"
+  unfolding use_coins_def by (intro ord_tspmf_map_spmf) auto
 
-lemma ord_tspmf_consume_2:
+lemma ord_tspmf_use_coins_2:
   assumes "ord_tspmf p q"
-  shows  "ord_tspmf (consume k p) (consume k q)"
-  using assms unfolding consume_def ord_tspmf_def ord_spmf_map_spmf12 by auto
+  shows  "ord_tspmf (use_coins k p) (use_coins k q)"
+  using assms unfolding use_coins_def ord_tspmf_def ord_spmf_map_spmf12 by auto
 
 lemma result_mono:
   assumes "ord_tspmf p q"
@@ -341,8 +340,8 @@ lemma spmf_of_tspmf:
   unfolding tspmf_of_ra_def result_def 
   by (simp add: untrack_coin_use spmf_of_ra_map[symmetric])
 
-lemma consumption_correct:
-  "consumption (tspmf_of_ra p) = coin_usage_of_ra p" (is "?L = ?R")
+lemma coin_usage_of_tspmf_correct:
+  "coin_usage_of_tspmf (tspmf_of_ra p) = coin_usage_of_ra p" (is "?L = ?R")
 proof -
   let ?p = "Rep_random_alg p"
 
@@ -365,13 +364,13 @@ proof -
   hence 0:"map_spmf snd (tspmf_of_ra p) = coin_usage_of_ra_aux p"
     using measure_pmf_inject by auto
   show ?thesis
-    unfolding consumption_def 0[symmetric] coin_usage_of_ra_def map_pmf_comp 
+    unfolding coin_usage_of_tspmf_def 0[symmetric] coin_usage_of_ra_def map_pmf_comp 
     by (intro map_pmf_cong) (auto split:option.split)
 qed
 
-lemma expected_consumption_correct:
-  "expected_consumption (tspmf_of_ra p) = expected_coin_usage_of_ra p"
-  unfolding expected_consumption_def consumption_real_def consumption_correct 
+lemma expected_coin_usage_of_tspmf_correct:
+  "expected_coin_usage_of_tspmf (tspmf_of_ra p) = expected_coin_usage_of_ra p"
+  unfolding expected_coin_usage_of_tspmf_def coin_usage_of_tspmf_correct 
     expected_coin_usage_of_ra_def by simp
 
 end

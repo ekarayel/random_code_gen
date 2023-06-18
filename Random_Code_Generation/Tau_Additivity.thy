@@ -4,7 +4,10 @@ theory Tau_Additivity
   imports "HOL-Analysis.Regularity"
 begin
 
-text \<open>For general countable chains of measurable sets, it is possible to deduce that the supremum
+text \<open>In this section we show $\tau$-additivity for measures, that are compatible with a 
+second-countable topology. This will be essential for the verification of the Scott-continuity
+of the monad morphisms. To understand the propery, let us recall that for general countable chains 
+of measurable sets, it is possible to deduce that the supremum
 of the measures of the sets is equal to the measure of the union of the family:
 \[
   \mu \left( \bigcup{\mathcal X} \right) = \sup_{X \in \mathcal X} \mu (X)
@@ -18,7 +21,7 @@ $\tau$-additive~\cite{fremlin2000}.
 
 In the following this property is derived for measures that are at least borel (i.e. every open
 set is measurable) in a complete second-countable topology. The result is an immediate consequence
-of inner-regularity @{thm [source] inner_regular}.\<close>
+of inner-regularity. The latter is already verified in @{theory "HOL-Analysis.Regularity"}.\<close>
 
 definition "op_stable op F = (\<forall>x y. x \<in> F \<and> y \<in> F \<longrightarrow> op x y \<in> F)"
 

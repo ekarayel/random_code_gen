@@ -4,6 +4,12 @@ theory Dice_Roll
   imports Tracking_SPMF
 begin
 
+text \<open>The following is a dice roll algorithm for an arbitrary number of sides @{term "n"}. 
+Besides correctness we also show that the expected number of coin flips is at most 
+@{term "log 2 n + 2"}. It is a specialization of the algorithm presented by Hao and 
+Hoshi~\cite{hao1997}. \footnote{An interesting alternative algorithm, which we did not formalized 
+here, has been introduced by Lambruso~\cite{lambruso2013}.}\<close>
+
 lemma floor_le_ceil_minus_one:
   fixes x y :: real
   shows "x < y \<Longrightarrow> \<lfloor>x\<rfloor> \<le> \<lceil>y\<rceil>-1"
@@ -150,29 +156,29 @@ abbreviation "coins k \<equiv> pmf_of_set {..<(2::nat)^k}"
 
 lemma dice_roll_step_tspmf_expand:
   assumes "h > 0"
-  shows "coins k \<bind> (\<lambda>l. consume k (drs_tspmf (real l*h) h)) \<le>\<^sub>R drs_tspmf 0 (h*2^k)"
+  shows "coins k \<bind> (\<lambda>l. use_coins k (drs_tspmf (real l*h) h)) \<le>\<^sub>R drs_tspmf 0 (h*2^k)"
   using assms
 proof (induction k arbitrary:h)
   case 0
   have "{..<Suc 0} = {0}" by auto
   then show ?case
-    by (auto intro:ord_tspmf_consume simp:pmf_of_set_singleton bind_return_pmf) 
+    by (auto intro:ord_tspmf_use_coins simp:pmf_of_set_singleton bind_return_pmf) 
 next
   case (Suc k)
-  have "(coins (k+1) \<bind> (\<lambda>l. consume (k+1) (drs_tspmf (real l*h) h))) = 
-    coins k \<bind> (\<lambda>l. coin_spmf \<bind> (\<lambda>b. consume (k+1) (drs_tspmf (real (2*l+ of_bool b) * h) h)))"
+  have "(coins (k+1) \<bind> (\<lambda>l. use_coins (k+1) (drs_tspmf (real l*h) h))) = 
+    coins k \<bind> (\<lambda>l. coin_spmf \<bind> (\<lambda>b. use_coins (k+1) (drs_tspmf (real (2*l+ of_bool b) * h) h)))"
     by (intro combine_spmf_set_coin_spmf[symmetric])
-  also have "... = coins k \<bind> (\<lambda>l. consume (k+1) (coin_spmf \<bind> 
+  also have "... = coins k \<bind> (\<lambda>l. use_coins (k+1) (coin_spmf \<bind> 
     (\<lambda>b. drs_tspmf (real l* (2*h) + h * of_bool b) h)))"
-    unfolding consume_def map_spmf_conv_bind_spmf by (simp add:algebra_simps)
-  also have "... = coins k \<bind> (\<lambda>l. consume k (coin_tspmf \<bind> 
+    unfolding use_coins_def map_spmf_conv_bind_spmf by (simp add:algebra_simps)
+  also have "... = coins k \<bind> (\<lambda>l. use_coins k (coin_tspmf \<bind> 
     (\<lambda>b. drs_tspmf (real l* (2*h) + h * of_bool b) h)))"
-    unfolding coin_tspmf_split consume_add by simp
-  also have "... = coins k \<bind> (\<lambda>l. consume k (coin_tspmf \<bind> 
+    unfolding coin_tspmf_split use_coins_add by simp
+  also have "... = coins k \<bind> (\<lambda>l. use_coins k (coin_tspmf \<bind> 
     (\<lambda>b. drs_tspmf (real l* (2*h) + ((2*h)/2) * of_bool b) ((2*h)/2))))"
     using Suc(2) by simp 
-  also have "... \<le>\<^sub>R coins k \<bind> (\<lambda>l. consume k (drs_tspmf (real l * (2 * h)) (2*h)))"
-    using Suc(2) by (intro ord_tspmf_bind_pmf ord_tspmf_consume_2 dice_roll_step_tspmf_lb) simp
+  also have "... \<le>\<^sub>R coins k \<bind> (\<lambda>l. use_coins k (drs_tspmf (real l * (2 * h)) (2*h)))"
+    using Suc(2) by (intro ord_tspmf_bind_pmf ord_tspmf_use_coins_2 dice_roll_step_tspmf_lb) simp
   also have "... \<le>\<^sub>R drs_tspmf 0 ((2*h)*2^k)"
     using Suc(2) by (intro Suc(1)) auto
   also have "... = drs_tspmf 0 (h*2^(k+1))"
@@ -188,11 +194,11 @@ lemma dice_roll_step_tspmf_approx:
   shows "map_pmf f (coins k) \<le>\<^sub>R drs_tspmf 0 (h*2^k)" (is "?L \<le>\<^sub>R ?R")
 proof -
   have "?L = coins k \<bind>
-    (\<lambda>l. consume k (if \<lfloor>real l*h\<rfloor>=\<lceil>(l+1)*h\<rceil>-1 then return_tspmf \<lfloor>l*h\<rfloor> else return_pmf None))"
-    unfolding f_def return_tspmf_def consume_def map_pmf_def
+    (\<lambda>l. use_coins k (if \<lfloor>real l*h\<rfloor>=\<lceil>(l+1)*h\<rceil>-1 then return_tspmf \<lfloor>l*h\<rfloor> else return_pmf None))"
+    unfolding f_def return_tspmf_def use_coins_def map_pmf_def
     by (simp add:if_distribR if_distrib bind_return_pmf algebra_simps cong:if_cong)
-  also have "... \<le>\<^sub>R coins k \<bind> (\<lambda>l. consume k (drs_tspmf (real l*h) h))"
-    by (subst drs_tspmf.simps, intro ord_tspmf_bind_pmf ord_tspmf_consume_2) 
+  also have "... \<le>\<^sub>R coins k \<bind> (\<lambda>l. use_coins k (drs_tspmf (real l*h) h))"
+    by (subst drs_tspmf.simps, intro ord_tspmf_bind_pmf ord_tspmf_use_coins_2) 
       (simp add:ord_tspmf_min ord_tspmf_refl algebra_simps)
   also have "... \<le>\<^sub>R drs_tspmf 0 (h*2^k)"
     by (intro dice_roll_step_tspmf_expand assms)
@@ -339,7 +345,8 @@ qed
 
 lemma dice_roll_consumption_bound:
   assumes "n > 0"
-  shows "measure (consumption (dice_roll_tspmf n)) {x. x > enat k } \<le> real n/2^k" (is "?L \<le> ?R")
+  shows "measure (coin_usage_of_tspmf (dice_roll_tspmf n)) {x. x > enat k } \<le> real n/2^k" 
+    (is "?L \<le> ?R")
 proof -
   define h where "h = real n/2^k"
   define f where "f l = (if \<lfloor>l*h\<rfloor>=\<lceil>(l+1)*h\<rceil>-1 then Some (\<lfloor>l*h\<rfloor>,k) else None)" for l :: nat
@@ -361,13 +368,13 @@ proof -
     finally show ?thesis by simp
   qed
 
-  have "?L = measure (consumption (drs_tspmf 0 n)) {x. x > enat k}"
-    unfolding dice_roll_tspmf_def consumption_bind_return by simp
-  also have "... \<le> measure (consumption (map_pmf f (coins k))) {x. x > enat k}"
+  have "?L = measure (coin_usage_of_tspmf (drs_tspmf 0 n)) {x. x > enat k}"
+    unfolding dice_roll_tspmf_def coin_usage_of_tspmf_bind_return by simp
+  also have "... \<le> measure (coin_usage_of_tspmf (map_pmf f (coins k))) {x. x > enat k}"
     unfolding f_def 0 
-    by (intro consumption_mono_rev dice_roll_step_tspmf_approx h_gt_0)
+    by (intro coin_usage_of_tspmf_mono_rev dice_roll_step_tspmf_approx h_gt_0)
   also have "... = measure (coins k) {l. \<lfloor>real l*h\<rfloor>\<noteq>\<lceil>(real l+1)*h\<rceil>-1}"
-    unfolding consumption_def map_pmf_comp 
+    unfolding coin_usage_of_tspmf_def map_pmf_comp 
     by (simp add:vimage_def f_def algebra_simps split:option.split)
   also have "... \<le> measure (coins k) {l. \<lfloor>real l*h\<rfloor><\<lfloor>(real l+1)*h\<rfloor>}"
     using 1 by (intro measure_pmf.finite_measure_mono subsetI) (simp_all)
@@ -390,12 +397,12 @@ qed
 
 lemma dice_roll_expected_consumption_aux:
   assumes "n > (0::nat)"
-  shows "expected_consumption (dice_roll_tspmf n) \<le> log 2 n + 2" (is "?L \<le> ?R")
+  shows "expected_coin_usage_of_tspmf (dice_roll_tspmf n) \<le> log 2 n + 2" (is "?L \<le> ?R")
 proof -
   define k0 where "k0 = nat \<lceil>log 2 n\<rceil>"
   define \<delta> where "\<delta> = log 2 n - \<lceil>log 2 n\<rceil>"
 
-  have 0: "ennreal (measure (consumption (dice_roll_tspmf n)) {x. x > enat k}) \<le> 
+  have 0: "ennreal (measure (coin_usage_of_tspmf (dice_roll_tspmf n)) {x. x > enat k}) \<le> 
     ennreal (min (real n/2^k) 1)" (is "?L1 \<le> ?R1") for k
     by (intro iffD2[OF ennreal_le_iff] min.boundedI dice_roll_consumption_bound[OF assms]) auto
 
@@ -426,8 +433,8 @@ proof -
     using that convex_onD[OF twop_conv, where x="0" and y="1" and t="x"]
     by (simp add:algebra_simps)
 
-  have "?L = (\<Sum>k. ennreal (measure (consumption (dice_roll_tspmf n)) {x. x > enat k}))"
-    unfolding expected_consumption by simp
+  have "?L = (\<Sum>k. ennreal (measure (coin_usage_of_tspmf (dice_roll_tspmf n)) {x. x > enat k}))"
+    unfolding expected_coin_usage_of_tspmf by simp
   also have "... \<le> (\<Sum>k. ennreal (min (real n/2^k) 1))"
     by (intro suminf_le summableI 0)
   also have "... = (\<Sum>k. ennreal (min (real n/2^(k+k0)) 1))+(\<Sum>k < k0. ennreal(min (real n/2^k) 1))"
@@ -462,9 +469,9 @@ theorem dice_roll_coin_usage:
   assumes "n > (0::nat)"
   shows "expected_coin_usage_of_ra (dice_roll_ra n) \<le> log 2 n + 2" (is "?L \<le> ?R")
 proof -
-  have "?L = expected_consumption (tspmf_of_ra (dice_roll_ra n))"
-    unfolding expected_consumption_correct[symmetric] by simp
-  also have "... = expected_consumption (dice_roll_tspmf n)"
+  have "?L = expected_coin_usage_of_tspmf (tspmf_of_ra (dice_roll_ra n))"
+    unfolding expected_coin_usage_of_tspmf_correct[symmetric] by simp
+  also have "... = expected_coin_usage_of_tspmf (dice_roll_tspmf n)"
     unfolding dice_roll_ra_tspmf by simp
   also have "... \<le> ?R"
     by (intro dice_roll_expected_consumption_aux assms)

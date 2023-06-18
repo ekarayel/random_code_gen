@@ -1,5 +1,11 @@
 section \<open>Tracking Randomized Algorithms\<close>
 
+text \<open>This section introduces the @{term "track_random_bits"} monad morphism, which converts a
+randomized algorithm to one that tracks the number of used coin-flips. The resulting algorithm
+can still be executed. This morphism is useful for testing and debugging. For the verification
+of coin-flip usage, the morphism @{term "tspmf_of_ra"} introduced in
+Section~\ref{sec:tracking_spmfs} is more useful.\<close>
+
 theory Tracking_Randomized_Algorithm
   imports Randomized_Algorithm 
 begin
@@ -35,7 +41,8 @@ next
     unfolding track_random_bits_def Some consumed_bits_def by simp
 qed
 
-lemma track_rb_coin: "track_random_bits coin_rai = coin_rai \<bind> (\<lambda>b. return_rai (b,1))" (is "?L = ?R")
+lemma track_rb_coin: 
+  "track_random_bits coin_rai = coin_rai \<bind> (\<lambda>b. return_rai (b,1))" (is "?L = ?R")
 proof (rule ext)
   fix bs :: "coin_stream"
   have "wf_on_prefix coin_rai [chd bs] (chd bs)" 

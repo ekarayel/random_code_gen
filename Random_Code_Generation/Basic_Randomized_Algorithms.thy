@@ -25,13 +25,13 @@ fun binary_dice_roll :: "nat \<Rightarrow> nat random_alg"
            return_ra (of_bool c + 2 * h)
         }"
 
-text \<open>Because the algorithm terminates unconditionally it is easy to very that binary_dice_roll
-terminates almost surely\<close>
+text \<open>Because the algorithm terminates unconditionally it is easy to verify that 
+@{term "binary_dice_roll"} terminates almost surely:\<close>
 
 lemma binary_dice_roll_terminates: "terminates_almost_surely (binary_dice_roll n)"
   by (induction n) (auto intro:terminates_almost_surely_intros)
  
-text \<open>The corresponding pmf can be written as:\<close>
+text \<open>The corresponding PMF can be written as:\<close>
       
 fun binary_dice_roll_pmf :: "nat \<Rightarrow> nat pmf"
   where
@@ -60,8 +60,8 @@ partial_function (random_alg) binary_geometric :: "nat \<Rightarrow> nat random_
            if c then (return_ra n) else binary_geometric (n+1)
         }"
 
-text \<open>This is necessary for running randomized algorithms defined with the partial_function 
-directive:\<close>
+text \<open>This is necessary for running randomized algorithms defined with the 
+@{command "partial_function"} directive:\<close>
 declare binary_geometric.simps[code]
 
 text \<open>In this case, we need to map to an SPMF:\<close>
@@ -88,7 +88,7 @@ proof -
 qed
 
 text \<open>Bernoulli distribution: For this example we show correspondence with the already existing
-definition of bernoulli SPMF.\<close>
+definition of @{term "bernoulli"} SPMF.\<close>
 
 partial_function (random_alg) bernoulli_ra :: "real \<Rightarrow> bool random_alg" where
   "bernoulli_ra p = do {
@@ -101,7 +101,7 @@ partial_function (random_alg) bernoulli_ra :: "real \<Rightarrow> bool random_al
 declare bernoulli_ra.simps[code]
 
 text \<open>The following is a different technique to show equivalence of an SPMF with a randomized
-algorithm. It only works if the SPMF has weight 1. First we show that the SPMF is a lower
+algorithm. It only works if the SPMF has weight $1$. First we show that the SPMF is a lower
 bound:\<close>
 
 lemma bernoulli_ra_correct_aux: "ord_spmf (=) (bernoulli x) (spmf_of_ra (bernoulli_ra x))"
@@ -123,7 +123,7 @@ lemma bernoulli_ra_correct: "bernoulli x = spmf_of_ra (bernoulli_ra x)"
   using lossless_bernoulli weight_spmf_le_1 unfolding lossless_spmf_def
   by (intro eq_iff_ord_spmf[OF _ bernoulli_ra_correct_aux]) auto 
 
-text \<open>Because @{term "bernoulli p"} is loss-less SPMF equivalent to
+text \<open>Because @{term "bernoulli p"} is a lossless SPMF equivalent to
 @{term "spmf_of_pmf (bernoulli_pmf p)"} it is also possible to express the above, without referring
 to SPMFs:\<close>
 
@@ -200,7 +200,7 @@ proof -
     by (simp flip:map_spmf_of_pmf add:spmf_of_ra_map)
 qed
 
-text \<open>Runinng randomized algorithms. Here we use the PCG introduced in 
+text \<open>Running randomized algorithms: Here we use the PRG introduced in 
 Section~\ref{sec:permuted_congruential_generator}.\<close>
 
 value "run_ra (binomial_ra 10 0.5) (random_coins 42)"
