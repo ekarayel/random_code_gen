@@ -1,7 +1,7 @@
 section \<open>Tracking SPMFs\label{sec:tracking_spmfs}\<close>
 
 text \<open>This section introduces tracking SPMFs --- this is a resource monad on top of SPMFs, we also
-introduce the Scott-continous monad morphism @{term "tspmf_of_ra"}, with which it is possible to 
+introduce the Scott-continous monad morphism @{term "tspmf_of_ra"}, with which it is possible to
 reason about the joint-distribution of a randomized algorithm's result and used coin-flips.
 
 An example application of the results in this theory can be found in Section~\ref{sec:dice_roll}.\<close>
@@ -27,12 +27,12 @@ text \<open>Monad laws:\<close>
 
 lemma return_bind_tspmf:
   "bind_tspmf (return_tspmf x) g = g x"
-  unfolding bind_tspmf_def return_tspmf_def map_spmf_conv_bind_spmf 
+  unfolding bind_tspmf_def return_tspmf_def map_spmf_conv_bind_spmf
   by (simp add:apsnd_def map_prod_def)
 
 lemma bind_tspmf_assoc:
   "bind_tspmf (bind_tspmf f g) h = bind_tspmf f (\<lambda>x. bind_tspmf (g x) h)"
-  unfolding bind_tspmf_def 
+  unfolding bind_tspmf_def
   by (simp add: case_prod_beta' algebra_simps map_spmf_conv_bind_spmf apsnd_def map_prod_def)
 
 lemma bind_return_tspmf:
@@ -43,25 +43,25 @@ lemma bind_return_tspmf:
 lemma bind_mono_tspmf_aux:
   assumes "ord_spmf (=) f1 f2" "\<And>y. ord_spmf (=) (g1 y) (g2 y)"
   shows "ord_spmf (=) (bind_tspmf f1 g1) (bind_tspmf f2 g2)"
-  using assms unfolding bind_tspmf_def map_spmf_conv_bind_spmf 
+  using assms unfolding bind_tspmf_def map_spmf_conv_bind_spmf
   by (auto intro!: bind_spmf_mono' simp add:case_prod_beta')
 
 lemma bind_mono_tspmf [partial_function_mono]:
   assumes "mono_spmf B" and "\<And>y. mono_spmf (C y)"
   shows "mono_spmf (\<lambda>f. bind_tspmf (B f) (\<lambda>y. C y f))"
-  using assms by (intro monotoneI bind_mono_tspmf_aux) (auto simp:monotone_def) 
+  using assms by (intro monotoneI bind_mono_tspmf_aux) (auto simp:monotone_def)
 
-definition ord_tspmf :: "'a tspmf \<Rightarrow> 'a tspmf \<Rightarrow> bool" where 
+definition ord_tspmf :: "'a tspmf \<Rightarrow> 'a tspmf \<Rightarrow> bool" where
   "ord_tspmf = ord_spmf (\<lambda>x y. fst x = fst y \<and> snd x \<ge> snd y)"
 
 bundle ord_tspmf_notation
 begin
-  notation ord_tspmf  ("(_/ \<le>\<^sub>R _)"  [51, 51] 50) 
+  notation ord_tspmf  ("(_/ \<le>\<^sub>R _)"  [51, 51] 50)
 end
 
 bundle no_ord_tspmf_notation
 begin
-  no_notation ord_tspmf  ("(_/ \<le>\<^sub>R _)"  [51, 51] 50) 
+  no_notation ord_tspmf  ("(_/ \<le>\<^sub>R _)"  [51, 51] 50)
 end
 
 unbundle ord_tspmf_notation
@@ -70,10 +70,10 @@ definition coin_usage_of_tspmf :: "'a tspmf \<Rightarrow> enat pmf"
   where "coin_usage_of_tspmf = map_pmf (\<lambda>x. case x of None \<Rightarrow> \<infinity> | Some y \<Rightarrow> enat (snd y))"
 
 definition expected_coin_usage_of_tspmf :: "'a tspmf \<Rightarrow> ennreal"
-  where 
+  where
     "expected_coin_usage_of_tspmf p = (\<integral>\<^sup>+x. x \<partial>(map_pmf ennreal_of_enat (coin_usage_of_tspmf p)))"
 
-definition expected_coin_usage_of_ra where 
+definition expected_coin_usage_of_ra where
   "expected_coin_usage_of_ra p = \<integral>\<^sup>+x. x \<partial>(map_pmf ennreal_of_enat (coin_usage_of_ra p))"
 
 definition result :: "'a tspmf \<Rightarrow> 'a spmf"
@@ -81,7 +81,7 @@ definition result :: "'a tspmf \<Rightarrow> 'a spmf"
 
 lemma coin_usage_of_tspmf_alt_def:
   "coin_usage_of_tspmf p = map_pmf (\<lambda>x. case x of None \<Rightarrow> \<infinity> | Some y \<Rightarrow> enat y) (map_spmf snd p)"
-  unfolding coin_usage_of_tspmf_def map_pmf_comp map_option_case 
+  unfolding coin_usage_of_tspmf_def map_pmf_comp map_option_case
   by (metis enat_def infinity_enat_def option.case_eq_if option.sel)
 
 lemma coin_usage_of_tspmf_bind_return:
@@ -93,8 +93,8 @@ lemma coin_usage_of_tspmf_mono:
   assumes "ord_tspmf p q"
   shows "measure (coin_usage_of_tspmf p) {..k} \<le> measure (coin_usage_of_tspmf q) {..k}"
 proof -
-  define p' where "p' = map_spmf snd p" 
-  define q' where "q' = map_spmf snd q" 
+  define p' where "p' = map_spmf snd p"
+  define q' where "q' = map_spmf snd q"
   have 0:"ord_spmf (\<ge>) p' q'"
     using assms(1) ord_spmf_mono unfolding p'_def q'_def ord_tspmf_def ord_spmf_map_spmf12 by fastforce
 
@@ -106,12 +106,12 @@ proof -
   have 0:"rel_pmf (\<ge>) (coin_usage_of_tspmf p) (coin_usage_of_tspmf q)"
     unfolding cp cq map_pmf_def by (intro rel_pmf_bindI[OF 0]) (auto split:option.split)
   show ?thesis
-    unfolding atMost_def by (intro measure_Ici[OF 0] transp_ge) (simp add:reflp_def) 
+    unfolding atMost_def by (intro measure_Ici[OF 0] transp_ge) (simp add:reflp_def)
 qed
 
 lemma coin_usage_of_tspmf_mono_rev:
   assumes "ord_tspmf p q"
-  shows "measure (coin_usage_of_tspmf q) {x. x > k} \<le> measure (coin_usage_of_tspmf p) {x. x > k}" 
+  shows "measure (coin_usage_of_tspmf q) {x. x > k} \<le> measure (coin_usage_of_tspmf p) {x. x > k}"
     (is "?L \<le> ?R")
 proof -
   have 0:"UNIV - {x. x > k} = {..k}"
@@ -142,21 +142,21 @@ lemma ord_tspmf_min: "ord_tspmf (return_pmf None) p"
 lemma ord_tspmf_refl: "ord_tspmf p p"
   unfolding ord_tspmf_def by (simp add: ord_spmf_reflI)
 
-lemma ord_tspmf_trans[trans]: 
+lemma ord_tspmf_trans[trans]:
   assumes "ord_tspmf p q" "ord_tspmf q r"
   shows "ord_tspmf p r"
 proof -
   have 0:"transp (ord_tspmf)"
     unfolding ord_tspmf_def
-    by (intro transp_rel_pmf transp_ord_option) (auto simp:transp_def) 
+    by (intro transp_rel_pmf transp_ord_option) (auto simp:transp_def)
   thus ?thesis
     using assms transpD[OF 0] by auto
 qed
 
-lemma ord_tspmf_map_spmf: 
+lemma ord_tspmf_map_spmf:
   assumes "\<And>x. x \<le> f x"
   shows "ord_tspmf (map_spmf (apsnd f) p) p"
-  using assms unfolding ord_tspmf_def ord_spmf_map_spmf1 
+  using assms unfolding ord_tspmf_def ord_spmf_map_spmf1
   by (intro ord_spmf_reflI) auto
 
 lemma ord_tspmf_bind_pmf:
@@ -176,7 +176,7 @@ definition use_coins :: "nat \<Rightarrow> 'a tspmf \<Rightarrow> 'a tspmf"
 
 lemma use_coins_add:
   "use_coins k (use_coins s f) = use_coins (k+s) f"
-  unfolding use_coins_def spmf.map_comp 
+  unfolding use_coins_def spmf.map_comp
   by (simp add:comp_def apsnd_def map_prod_def case_prod_beta' algebra_simps)
 
 lemma coin_tspmf_split:
@@ -215,21 +215,21 @@ definition tspmf_of_ra :: "'a random_alg \<Rightarrow> 'a tspmf" where
   "tspmf_of_ra = spmf_of_ra \<circ> track_coin_use"
 
 lemma tspmf_of_ra_coin: "tspmf_of_ra coin_ra = coin_tspmf"
-  unfolding tspmf_of_ra_def comp_def track_coin_use_coin coin_tra_def coin_tspmf_def 
+  unfolding tspmf_of_ra_def comp_def track_coin_use_coin coin_tra_def coin_tspmf_def
     spmf_of_ra_bind spmf_of_ra_coin spmf_of_ra_return pair_spmf_alt_def
   by simp
 
 lemma tspmf_of_ra_return: "tspmf_of_ra (return_ra x) = return_tspmf x"
-  unfolding tspmf_of_ra_def comp_def track_coin_use_return return_tra_def return_tspmf_def 
+  unfolding tspmf_of_ra_def comp_def track_coin_use_return return_tra_def return_tspmf_def
      spmf_of_ra_return by simp
 
 lemma tspmf_of_ra_bind:
   "tspmf_of_ra (bind_ra m f) = bind_tspmf (tspmf_of_ra m) (\<lambda>x. tspmf_of_ra (f x))"
-  unfolding tspmf_of_ra_def comp_def track_coin_use_bind bind_tra_def bind_tspmf_def 
+  unfolding tspmf_of_ra_def comp_def track_coin_use_bind bind_tra_def bind_tspmf_def
     map_spmf_conv_bind_spmf
   by (simp add:case_prod_beta' spmf_of_ra_bind spmf_of_ra_return apsnd_def map_prod_def)
 
-lemmas tspmf_of_ra_simps = tspmf_of_ra_bind tspmf_of_ra_return tspmf_of_ra_coin 
+lemmas tspmf_of_ra_simps = tspmf_of_ra_bind tspmf_of_ra_return tspmf_of_ra_coin
 
 lemma tspmf_of_ra_mono:
   assumes "ord_ra f g"
@@ -245,7 +245,7 @@ proof -
     by (intro chain_imageI[OF assms] track_coin_use_mono)
 
   have "?L = spmf_of_ra (lub_ra (track_coin_use ` A))"
-    unfolding tspmf_of_ra_def comp_def 
+    unfolding tspmf_of_ra_def comp_def
     by (intro arg_cong[where f="spmf_of_ra"] track_coin_use_lub assms)
   also have "... = lub_spmf (spmf_of_ra ` track_coin_use ` A)"
     by (intro spmf_of_ra_lub_ra 0)
@@ -270,7 +270,7 @@ proof (rule ccpo.admissibleI)
     and chain2: "Complete_Partial_Order.chain ord_ra (snd ` Y)"
     using chain by(rule chain_imageI; clarsimp)+
   from Y have Y1: "fst ` Y \<noteq> {}" and Y2: "snd ` Y \<noteq> {}" by auto
- 
+
   have "lub_spmf (fst ` Y) = lub_spmf (tspmf_of_ra ` snd ` Y)"
     unfolding image_image using R
     by (intro arg_cong[of _ _ lub_spmf] image_cong) (auto simp: rel_tspmf_of_ra_def)
@@ -286,7 +286,7 @@ lemma admissible_rel_tspmf_of_ra_cont [cont_intro]:
   fixes ord
   shows "\<lbrakk> mcont lub ord lub_spmf (ord_spmf (=)) f; mcont lub ord lub_ra ord_ra g \<rbrakk>
   \<Longrightarrow> ccpo.admissible lub ord (\<lambda>x. rel_tspmf_of_ra (f x) (g x))"
-  by (rule admissible_subst[OF admissible_rel_tspmf_of_ra, where f="\<lambda>x. (f x, g x)", simplified]) 
+  by (rule admissible_subst[OF admissible_rel_tspmf_of_ra, where f="\<lambda>x. (f x, g x)", simplified])
      (rule mcont_Pair)
 
 lemma mcont_tspmf_of_ra:
@@ -304,20 +304,20 @@ lemma fixp_rel_tspmf_of_ra_parametric[transfer_rule]:
   and g: "\<And>x. mono_ra (\<lambda>f. G f x)"
   and param: "((A ===> rel_tspmf_of_ra) ===> A ===> rel_tspmf_of_ra) F G"
   shows "(A ===> rel_tspmf_of_ra) (spmf.fixp_fun F) (random_alg_pf.fixp_fun G)"
-  using f g 
-proof(rule parallel_fixp_induct_1_1[OF 
-      partial_function_definitions_spmf random_alg_pfd _ _ reflexive reflexive, 
+  using f g
+proof(rule parallel_fixp_induct_1_1[OF
+      partial_function_definitions_spmf random_alg_pfd _ _ reflexive reflexive,
         where P="(A ===> rel_tspmf_of_ra)"])
-  show "ccpo.admissible (prod_lub (fun_lub lub_spmf) (fun_lub lub_ra)) 
-        (rel_prod (fun_ord (ord_spmf (=))) (fun_ord ord_ra)) 
+  show "ccpo.admissible (prod_lub (fun_lub lub_spmf) (fun_lub lub_ra))
+        (rel_prod (fun_ord (ord_spmf (=))) (fun_ord ord_ra))
         (\<lambda>x. (A ===> rel_tspmf_of_ra) (fst x) (snd x))"
-    unfolding rel_fun_def 
+    unfolding rel_fun_def
     by(rule admissible_all admissible_imp cont_intro)+
   have 0:"tspmf_of_ra (lub_ra {}) = return_pmf None"
     using tspmf_of_ra_lub[where A="{}"]
     by (simp add:Complete_Partial_Order.chain_def)
   show "(A ===> rel_tspmf_of_ra) (\<lambda>_. lub_spmf {}) (\<lambda>_. lub_ra {})"
-    by (auto simp: rel_fun_def rel_tspmf_of_ra_def 0) 
+    by (auto simp: rel_fun_def rel_tspmf_of_ra_def 0)
   show "(A ===> rel_tspmf_of_ra) (F f) (G g)" if "(A ===> rel_tspmf_of_ra) f g" for f g
     using that by(rule rel_funD[OF param])
 qed
@@ -329,7 +329,7 @@ lemma bind_ra_tranfer[transfer_rule]:
   "(rel_tspmf_of_ra ===> ((=) ===> rel_tspmf_of_ra) ===> rel_tspmf_of_ra) bind_tspmf bind_ra"
   unfolding rel_fun_def rel_tspmf_of_ra_def tspmf_of_ra_bind by simp presburger
 
-lemma coin_ra_tranfer[transfer_rule]: 
+lemma coin_ra_tranfer[transfer_rule]:
   "rel_tspmf_of_ra coin_tspmf coin_ra"
   unfolding rel_fun_def rel_tspmf_of_ra_def tspmf_of_ra_coin by simp
 
@@ -337,7 +337,7 @@ end
 
 lemma spmf_of_tspmf:
   "result (tspmf_of_ra f) = spmf_of_ra f"
-  unfolding tspmf_of_ra_def result_def 
+  unfolding tspmf_of_ra_def result_def
   by (simp add: untrack_coin_use spmf_of_ra_map[symmetric])
 
 lemma coin_usage_of_tspmf_correct:
@@ -347,11 +347,11 @@ proof -
 
   have "measure_pmf (map_spmf snd (tspmf_of_ra p)) =
     distr (distr_rai (track_random_bits ?p)) \<D> (map_option snd)"
-    unfolding tspmf_of_ra_def map_pmf_rep_eq spmf_of_ra.rep_eq comp_def track_coin_use.rep_eq 
+    unfolding tspmf_of_ra_def map_pmf_rep_eq spmf_of_ra.rep_eq comp_def track_coin_use.rep_eq
     by simp
   also have "... = distr \<B> \<D> (map_option snd \<circ> (map_option fst \<circ> track_random_bits ?p))"
-    unfolding distr_rai_def 
-    by (intro distr_distr distr_rai_measurable wf_track_random_bits wf_rep_rand_alg) simp 
+    unfolding distr_rai_def
+    by (intro distr_distr distr_rai_measurable wf_track_random_bits wf_rep_rand_alg) simp
   also have "... = distr \<B> \<D> (\<lambda>x. ?p x \<bind> (\<lambda>xa. consumed_bits ?p x))"
     unfolding track_random_bits_def by (simp add:comp_def map_option_bind case_prod_beta)
   also have "... = distr \<B> \<D> (\<lambda>x. consumed_bits ?p x)"
@@ -364,13 +364,13 @@ proof -
   hence 0:"map_spmf snd (tspmf_of_ra p) = coin_usage_of_ra_aux p"
     using measure_pmf_inject by auto
   show ?thesis
-    unfolding coin_usage_of_tspmf_def 0[symmetric] coin_usage_of_ra_def map_pmf_comp 
+    unfolding coin_usage_of_tspmf_def 0[symmetric] coin_usage_of_ra_def map_pmf_comp
     by (intro map_pmf_cong) (auto split:option.split)
 qed
 
 lemma expected_coin_usage_of_tspmf_correct:
   "expected_coin_usage_of_tspmf (tspmf_of_ra p) = expected_coin_usage_of_ra p"
-  unfolding expected_coin_usage_of_tspmf_def coin_usage_of_tspmf_correct 
+  unfolding expected_coin_usage_of_tspmf_def coin_usage_of_tspmf_correct
     expected_coin_usage_of_ra_def by simp
 
 end

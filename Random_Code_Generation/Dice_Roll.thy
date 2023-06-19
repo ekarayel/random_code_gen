@@ -4,10 +4,10 @@ theory Dice_Roll
   imports Tracking_SPMF
 begin
 
-text \<open>The following is a dice roll algorithm for an arbitrary number of sides @{term "n"}. 
-Besides correctness we also show that the expected number of coin flips is at most 
-@{term "log 2 n + 2"}. It is a specialization of the algorithm presented by Hao and 
-Hoshi~\cite{hao1997}. \footnote{An interesting alternative algorithm, which we did not formalized 
+text \<open>The following is a dice roll algorithm for an arbitrary number of sides @{term "n"}.
+Besides correctness we also show that the expected number of coin flips is at most
+@{term "log 2 n + 2"}. It is a specialization of the algorithm presented by Hao and
+Hoshi~\cite{hao1997}. \footnote{An interesting alternative algorithm, which we did not formalized
 here, has been introduced by Lambruso~\cite{lambruso2013}.}\<close>
 
 lemma floor_le_ceil_minus_one:
@@ -30,11 +30,11 @@ proof -
   have bij:"bij_betw ?f ({..<2^k} \<times> UNIV) {..<2^(k+1)}"
     by (intro bij_betwI[where g="(\<lambda>x. (x div 2, odd x))"]) auto
 
-  have "pmf (pair_pmf (pmf_of_set {..<2^k}) ?coin) x = 
+  have "pmf (pair_pmf (pmf_of_set {..<2^k}) ?coin) x =
     pmf (pmf_of_set ({..<2^k}\<times>UNIV)) x" for x :: "nat\<times> bool"
     by (cases x) (simp add:pmf_pair indicator_def)
   hence 0:"pair_pmf (pmf_of_set {..<(2::nat)^k}) ?coin = pmf_of_set ({..<2^k}\<times>UNIV)"
-    by (intro pmf_eqI) simp 
+    by (intro pmf_eqI) simp
 
   have "map_pmf ?f (pmf_of_set ({..<2^k}\<times>UNIV)) = pmf_of_set (?f ` ({..<2^k}\<times>UNIV))"
     using bij_betw_imp_inj_on[OF bij] by (intro map_pmf_of_set_inj) auto
@@ -74,9 +74,9 @@ qed
 
 partial_function (random_alg) dice_roll_step_ra :: "real \<Rightarrow> real \<Rightarrow> int random_alg"
   where "dice_roll_step_ra l h = (
-    if \<lfloor>l\<rfloor> = \<lceil>l+h\<rceil>-1 then 
-      return_ra \<lfloor>l\<rfloor> 
-    else 
+    if \<lfloor>l\<rfloor> = \<lceil>l+h\<rceil>-1 then
+      return_ra \<lfloor>l\<rfloor>
+    else
       do { b \<leftarrow> coin_ra; dice_roll_step_ra (l + (h/2) * of_bool b) (h/2) }
     )"
 
@@ -84,9 +84,9 @@ definition "dice_roll_ra n = map_ra nat (dice_roll_step_ra 0 (of_nat n))"
 
 partial_function (spmf) drs_tspmf :: "real \<Rightarrow> real \<Rightarrow> int tspmf"
   where "drs_tspmf l h = (
-    if \<lfloor>l\<rfloor> = \<lceil>l+h\<rceil>-1 then 
+    if \<lfloor>l\<rfloor> = \<lceil>l+h\<rceil>-1 then
       return_tspmf \<lfloor>l\<rfloor>
-    else 
+    else
       do { b \<leftarrow> coin_tspmf; drs_tspmf (l + (h/2) * of_bool b) (h/2) }
     )"
 
@@ -113,13 +113,13 @@ lemma dice_roll_step_tspmf_lb:
   shows "coin_tspmf \<bind> (\<lambda>b. drs_tspmf (l + (h/2) * of_bool b) (h/2)) \<le>\<^sub>R drs_tspmf l h"
 proof (cases "\<lfloor>l\<rfloor> = \<lceil>l+h\<rceil>-1")
   case True
-  hence 2:"drs_tspmf l h = return_tspmf \<lfloor>l\<rfloor>" 
+  hence 2:"drs_tspmf l h = return_tspmf \<lfloor>l\<rfloor>"
     by (subst drs_tspmf.simps) simp
 
   have 0: "\<lfloor>l + h / 2 * of_bool b\<rfloor> = \<lfloor>l\<rfloor>" for b
   proof -
     have "\<lfloor>l + h / 2 * of_bool b\<rfloor> \<le> \<lfloor>l + h / 2\<rfloor>"
-      using assms by (intro floor_mono add_mono) auto 
+      using assms by (intro floor_mono add_mono) auto
     also have "... \<le> \<lceil>l + h\<rceil> - 1"
       using assms by (intro floor_le_ceil_minus_one add_strict_left_mono) auto
     also have "... = \<lfloor>l\<rfloor>" using True by simp
@@ -144,7 +144,7 @@ proof (cases "\<lfloor>l\<rfloor> = \<lceil>l+h\<rceil>-1")
     using 0 1 by (subst drs_tspmf.simps) simp
 
   show ?thesis
-    unfolding 2 3 bind_tspmf_def coin_tspmf_def pair_spmf_alt_def 
+    unfolding 2 3 bind_tspmf_def coin_tspmf_def pair_spmf_alt_def
     by (simp add:bind_spmf_const ord_tspmf_map_spmf)
 next
   case False
@@ -162,21 +162,21 @@ proof (induction k arbitrary:h)
   case 0
   have "{..<Suc 0} = {0}" by auto
   then show ?case
-    by (auto intro:ord_tspmf_use_coins simp:pmf_of_set_singleton bind_return_pmf) 
+    by (auto intro:ord_tspmf_use_coins simp:pmf_of_set_singleton bind_return_pmf)
 next
   case (Suc k)
-  have "(coins (k+1) \<bind> (\<lambda>l. use_coins (k+1) (drs_tspmf (real l*h) h))) = 
+  have "(coins (k+1) \<bind> (\<lambda>l. use_coins (k+1) (drs_tspmf (real l*h) h))) =
     coins k \<bind> (\<lambda>l. coin_spmf \<bind> (\<lambda>b. use_coins (k+1) (drs_tspmf (real (2*l+ of_bool b) * h) h)))"
     by (intro combine_spmf_set_coin_spmf[symmetric])
-  also have "... = coins k \<bind> (\<lambda>l. use_coins (k+1) (coin_spmf \<bind> 
+  also have "... = coins k \<bind> (\<lambda>l. use_coins (k+1) (coin_spmf \<bind>
     (\<lambda>b. drs_tspmf (real l* (2*h) + h * of_bool b) h)))"
     unfolding use_coins_def map_spmf_conv_bind_spmf by (simp add:algebra_simps)
-  also have "... = coins k \<bind> (\<lambda>l. use_coins k (coin_tspmf \<bind> 
+  also have "... = coins k \<bind> (\<lambda>l. use_coins k (coin_tspmf \<bind>
     (\<lambda>b. drs_tspmf (real l* (2*h) + h * of_bool b) h)))"
     unfolding coin_tspmf_split use_coins_add by simp
-  also have "... = coins k \<bind> (\<lambda>l. use_coins k (coin_tspmf \<bind> 
+  also have "... = coins k \<bind> (\<lambda>l. use_coins k (coin_tspmf \<bind>
     (\<lambda>b. drs_tspmf (real l* (2*h) + ((2*h)/2) * of_bool b) ((2*h)/2))))"
-    using Suc(2) by simp 
+    using Suc(2) by simp
   also have "... \<le>\<^sub>R coins k \<bind> (\<lambda>l. use_coins k (drs_tspmf (real l * (2 * h)) (2*h)))"
     using Suc(2) by (intro ord_tspmf_bind_pmf ord_tspmf_use_coins_2 dice_roll_step_tspmf_lb) simp
   also have "... \<le>\<^sub>R drs_tspmf 0 ((2*h)*2^k)"
@@ -198,7 +198,7 @@ proof -
     unfolding f_def return_tspmf_def use_coins_def map_pmf_def
     by (simp add:if_distribR if_distrib bind_return_pmf algebra_simps cong:if_cong)
   also have "... \<le>\<^sub>R coins k \<bind> (\<lambda>l. use_coins k (drs_tspmf (real l*h) h))"
-    by (subst drs_tspmf.simps, intro ord_tspmf_bind_pmf ord_tspmf_use_coins_2) 
+    by (subst drs_tspmf.simps, intro ord_tspmf_bind_pmf ord_tspmf_use_coins_2)
       (simp add:ord_tspmf_min ord_tspmf_refl algebra_simps)
   also have "... \<le>\<^sub>R drs_tspmf 0 (h*2^k)"
     by (intro dice_roll_step_tspmf_expand assms)
@@ -209,7 +209,7 @@ lemma dice_roll_step_spmf_approx:
   fixes k :: nat
   assumes "h > (0::real)"
   defines "f \<equiv> (\<lambda>l. if \<lfloor>l*h\<rfloor>=\<lceil>(l+1)*h\<rceil>-1 then Some (\<lfloor>l*h\<rfloor>) else None)"
-  shows "ord_spmf (=) (map_pmf f (coins k)) (result (drs_tspmf 0 (h*2^k)))" 
+  shows "ord_spmf (=) (map_pmf f (coins k)) (result (drs_tspmf 0 (h*2^k)))"
     (is "ord_spmf _ ?L ?R")
 proof -
   have 0: "?L = result (map_pmf (\<lambda>l. if \<lfloor>l*h\<rfloor>=\<lceil>(l+1)*h\<rceil>-1 then Some (\<lfloor>l*h\<rfloor>,k) else None) (coins k))"
@@ -217,7 +217,7 @@ proof -
 
   show ?thesis
     unfolding 0 using assms result_mono[OF dice_roll_step_tspmf_approx] by simp
-qed   
+qed
 
 lemma spmf_dice_roll_step_lb:
   assumes "j < n"
@@ -232,7 +232,7 @@ proof (rule ccontr)
   have h_gt_0: "h > 0" using assms unfolding h_def by auto
   have n_gt_0: "real n > 0" using assms by simp
 
-  have 0: "x < 2^k" if "real x \<le> (real j+1)*2^k/n-1" for x 
+  have 0: "x < 2^k" if "real x \<le> (real j+1)*2^k/n-1" for x
   proof -
     have "real x \<le> (real j+1)*2^k/n-1" using that by simp
     also have "... \<le> real n * 2^k/n - 1"
@@ -244,7 +244,7 @@ proof (rule ccontr)
   have 2: "int ` {x. P (real x)} = {x. P (real_of_int x)}" if "\<And>x. P x \<Longrightarrow> x \<ge> 0" for P
   proof -
     have "bij_betw int {x. P (real x)} {x. P (real_of_int x)}"
-      using that by (intro bij_betwI[where g="nat"]) force+ 
+      using that by (intro bij_betwI[where g="nat"]) force+
     thus ?thesis
       using bij_betw_imp_surj_on by auto
   qed
@@ -274,16 +274,16 @@ proof (rule ccontr)
     using 0 by (intro arg_cong[where f="\<lambda>x. real (card x)/2^k"]) auto
   also have "... = real (card {l. l< 2^k \<and> real j \<le> real l * h \<and> (1 + real l)*h\<le>real j+1}) / 2^k"
     using assms unfolding h_def
-    by (intro arg_cong[where f="\<lambda>x. real (card x)/2^k"] Collect_cong) (auto simp:field_simps) 
+    by (intro arg_cong[where f="\<lambda>x. real (card x)/2^k"] Collect_cong) (auto simp:field_simps)
   also have "... = measure (coins k) {l. real j \<le> real l*h \<and> real (l+1)*h \<le> real j + 1 }"
     by (subst measure_pmf_of_set) (simp_all add:lessThan_empty_iff Int_def)
-  also have "... = measure (coins k) {l. int j \<le> \<lfloor>real l*h\<rfloor> \<and> \<lceil>real (l+1)*h\<rceil> - 1 \<le> int j }" 
-    by (intro arg_cong2[where f="measure"] refl Collect_cong) linarith 
-  also have "... = measure (coins k) {l. int j = \<lfloor>real l*h\<rfloor> \<and> int j = \<lceil>real (l+1)*h\<rceil> - 1}" 
-    using 3 order.trans order_antisym 
-    by (intro arg_cong2[where f="measure"] refl Collect_cong iffI, blast, simp) 
+  also have "... = measure (coins k) {l. int j \<le> \<lfloor>real l*h\<rfloor> \<and> \<lceil>real (l+1)*h\<rceil> - 1 \<le> int j }"
+    by (intro arg_cong2[where f="measure"] refl Collect_cong) linarith
+  also have "... = measure (coins k) {l. int j = \<lfloor>real l*h\<rfloor> \<and> int j = \<lceil>real (l+1)*h\<rceil> - 1}"
+    using 3 order.trans order_antisym
+    by (intro arg_cong2[where f="measure"] refl Collect_cong iffI, blast, simp)
   also have "... = spmf (map_pmf f (coins k)) j"
-    unfolding pmf_map f_def vimage_def 
+    unfolding pmf_map f_def vimage_def
     by (intro arg_cong2[where f="measure"] refl Collect_cong) auto
   also have "... \<le> spmf (result (drs_tspmf 0 (h*2^k))) j"
     unfolding f_def by (intro ord_spmf_eq_leD dice_roll_step_spmf_approx h_gt_0)
@@ -298,7 +298,7 @@ lemma dice_roll_correct_aux:
   shows "result (drs_tspmf 0 (of_nat n)) = spmf_of_set {0..<n}"
 proof -
   have "weight_spmf (spmf_of_set {0..<int n}) \<ge> weight_spmf (result (drs_tspmf 0 (of_nat n)))"
-    using assms unfolding weight_spmf_of_set 
+    using assms unfolding weight_spmf_of_set
     by (simp add:lessThan_empty_iff weight_spmf_le_1)
   moreover have "spmf (spmf_of_set {0..<int n}) x \<le> spmf (result (drs_tspmf 0 (of_nat n))) x" for x
   proof (cases "x < n \<and> x \<ge> 0")
@@ -307,7 +307,7 @@ proof -
       unfolding spmf_of_set by auto
     also have "... \<le> spmf (result (drs_tspmf 0 (of_nat n))) (of_nat (nat x))"
       using True by (intro spmf_dice_roll_step_lb) auto
-    also have "... = spmf (result (drs_tspmf 0 (of_nat n))) x" 
+    also have "... = spmf (result (drs_tspmf 0 (of_nat n))) x"
       using True by (subst of_nat_nat) auto
     finally show ?thesis by simp
   next
@@ -315,7 +315,7 @@ proof -
     hence "spmf (spmf_of_set {0..<int n}) x = 0"
       unfolding spmf_of_set by auto
     then show ?thesis by simp
-  qed  
+  qed
   hence "ord_spmf (=) (spmf_of_set {0..<int n}) (result (drs_tspmf 0 (of_nat n)))"
     by (intro ord_pmf_increaseI refl) auto
   ultimately show ?thesis
@@ -324,7 +324,7 @@ qed
 
 theorem dice_roll_correct:
   assumes "n > 0"
-  shows 
+  shows
     "result (dice_roll_tspmf n) = spmf_of_set {..<n}" (is "?L = ?R")
     "spmf_of_ra (dice_roll_ra n) = spmf_of_set {..<n}"
 proof -
@@ -337,7 +337,7 @@ proof -
   also have "... = spmf_of_set (nat ` {0..<int n})"
     by (intro map_spmf_of_set_inj_on inj_onI) auto
   also have "... = ?R"
-    using bij_betw_imp_surj_on[OF bij] by (intro arg_cong[where f="spmf_of_set"]) auto 
+    using bij_betw_imp_surj_on[OF bij] by (intro arg_cong[where f="spmf_of_set"]) auto
   finally show "?L = ?R" by simp
   thus "spmf_of_ra (dice_roll_ra n) = ?R"
     using spmf_of_tspmf dice_roll_ra_tspmf by metis
@@ -345,14 +345,14 @@ qed
 
 lemma dice_roll_consumption_bound:
   assumes "n > 0"
-  shows "measure (coin_usage_of_tspmf (dice_roll_tspmf n)) {x. x > enat k } \<le> real n/2^k" 
+  shows "measure (coin_usage_of_tspmf (dice_roll_tspmf n)) {x. x > enat k } \<le> real n/2^k"
     (is "?L \<le> ?R")
 proof -
   define h where "h = real n/2^k"
   define f where "f l = (if \<lfloor>l*h\<rfloor>=\<lceil>(l+1)*h\<rceil>-1 then Some (\<lfloor>l*h\<rfloor>,k) else None)" for l :: nat
 
   have h_gt_0: " h > 0"
-    using assms unfolding h_def 
+    using assms unfolding h_def
     by (intro divide_pos_pos) auto
   have 0:"real n = h * 2^k"
     unfolding h_def by simp
@@ -371,10 +371,10 @@ proof -
   have "?L = measure (coin_usage_of_tspmf (drs_tspmf 0 n)) {x. x > enat k}"
     unfolding dice_roll_tspmf_def coin_usage_of_tspmf_bind_return by simp
   also have "... \<le> measure (coin_usage_of_tspmf (map_pmf f (coins k))) {x. x > enat k}"
-    unfolding f_def 0 
+    unfolding f_def 0
     by (intro coin_usage_of_tspmf_mono_rev dice_roll_step_tspmf_approx h_gt_0)
   also have "... = measure (coins k) {l. \<lfloor>real l*h\<rfloor>\<noteq>\<lceil>(real l+1)*h\<rceil>-1}"
-    unfolding coin_usage_of_tspmf_def map_pmf_comp 
+    unfolding coin_usage_of_tspmf_def map_pmf_comp
     by (simp add:vimage_def f_def algebra_simps split:option.split)
   also have "... \<le> measure (coins k) {l. \<lfloor>real l*h\<rfloor><\<lfloor>(real l+1)*h\<rfloor>}"
     using 1 by (intro measure_pmf.finite_measure_mono subsetI) (simp_all)
@@ -385,8 +385,8 @@ proof -
   also have "... = (\<Sum>l<2 ^ k. of_bool (\<lfloor>real l*h\<rfloor> < \<lfloor>(real l+1)*h\<rfloor>)) / 2^k"
     by (simp add:lessThan_empty_iff indicator_def flip:sum_divide_distrib)
   also have "... \<le> (\<Sum>l<2 ^ k. of_int \<lfloor>real (Suc l)*h\<rfloor> - of_int \<lfloor>real l*h\<rfloor>) / 2^k"
-    using h_gt_0 int_less_real_le 
-    by (intro divide_right_mono sum_mono) (auto intro:floor_mono simp:algebra_simps) 
+    using h_gt_0 int_less_real_le
+    by (intro divide_right_mono sum_mono) (auto intro:floor_mono simp:algebra_simps)
   also have "... = of_int \<lfloor>2 ^ k * h\<rfloor> / 2 ^ k"
     by (subst sum_lessThan_telescope) simp
   also have "... = real n / 2^k"
@@ -402,7 +402,7 @@ proof -
   define k0 where "k0 = nat \<lceil>log 2 n\<rceil>"
   define \<delta> where "\<delta> = log 2 n - \<lceil>log 2 n\<rceil>"
 
-  have 0: "ennreal (measure (coin_usage_of_tspmf (dice_roll_tspmf n)) {x. x > enat k}) \<le> 
+  have 0: "ennreal (measure (coin_usage_of_tspmf (dice_roll_tspmf n)) {x. x > enat k}) \<le>
     ennreal (min (real n/2^k) 1)" (is "?L1 \<le> ?R1") for k
     by (intro iffD2[OF ennreal_le_iff] min.boundedI dice_roll_consumption_bound[OF assms]) auto
 
@@ -413,7 +413,7 @@ proof -
     by (intro suminf_ennreal2) auto
   also have "... = ennreal 2"
     by (subst suminf_geometric) simp_all
-  finally have 2:"(\<Sum>k. ennreal ((1/2)^k)) = ennreal 2" 
+  finally have 2:"(\<Sum>k. ennreal ((1/2)^k)) = ennreal 2"
     by simp
 
   have "real n \<ge> 1"
@@ -427,7 +427,7 @@ proof -
     unfolding \<delta>_def by (auto simp:algebra_simps)
 
   have twop_conv: "convex_on UNIV (\<lambda>x. 2 powr (x::real))"
-    using convex_on_exp[where l="ln 2"] unfolding powr_def 
+    using convex_on_exp[where l="ln 2"] unfolding powr_def
     by (auto simp:algebra_simps)
   have 5:"2 powr x \<le> 1 + x" if "x \<in> {0..1}" for x :: real
     using that convex_onD[OF twop_conv, where x="0" and y="1" and t="x"]
@@ -442,7 +442,7 @@ proof -
   also have "... \<le> (\<Sum>k. ennreal (real n/2^(k+k0))) + (\<Sum>k < k0. 1)"
     by (intro add_mono suminf_le summableI sum_mono iffD2[OF ennreal_le_iff]) auto
   also have "... = (\<Sum>k. ennreal (real n /2^k0) * ennreal ((1/2)^k)) + of_nat k0"
-    by (intro suminf_cong arg_cong2[where f="(+)"]) 
+    by (intro suminf_cong arg_cong2[where f="(+)"])
      (simp_all add: ennreal_mult[symmetric] power_add divide_simps)
   also have "... = ennreal (real n /2^k0) * (\<Sum>k. ennreal ((1/2)^k)) + ennreal (real k0)"
     unfolding ennreal_of_nat_eq_real_of_nat by simp

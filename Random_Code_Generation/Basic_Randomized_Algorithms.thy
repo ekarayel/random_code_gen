@@ -5,15 +5,15 @@ serve as building blocks for more complex algorithms and as examples describing 
 framework.\<close>
 
 theory Basic_Randomized_Algorithms
-  imports 
-    Randomized_Algorithm 
-    Probabilistic_While.Bernoulli 
+  imports
+    Randomized_Algorithm
+    Probabilistic_While.Bernoulli
     Probabilistic_While.Geometric
     Permuted_Congruential_Generator
 begin
 
 text \<open>A simple example: Here we define a randomized algorithm that can sample uniformly from
-@{term "pmf_of_set {..<(2::nat)^n}"}. (The same problem for general ranges is discussed in 
+@{term "pmf_of_set {..<(2::nat)^n}"}. (The same problem for general ranges is discussed in
 Section~\ref{sec:dice_roll}).\<close>
 
 fun binary_dice_roll :: "nat \<Rightarrow> nat random_alg"
@@ -25,14 +25,14 @@ fun binary_dice_roll :: "nat \<Rightarrow> nat random_alg"
            return_ra (of_bool c + 2 * h)
         }"
 
-text \<open>Because the algorithm terminates unconditionally it is easy to verify that 
+text \<open>Because the algorithm terminates unconditionally it is easy to verify that
 @{term "binary_dice_roll"} terminates almost surely:\<close>
 
 lemma binary_dice_roll_terminates: "terminates_almost_surely (binary_dice_roll n)"
   by (induction n) (auto intro:terminates_almost_surely_intros)
- 
+
 text \<open>The corresponding PMF can be written as:\<close>
-      
+
 fun binary_dice_roll_pmf :: "nat \<Rightarrow> nat pmf"
   where
     "binary_dice_roll_pmf 0 = return_pmf 0" |
@@ -42,12 +42,12 @@ fun binary_dice_roll_pmf :: "nat \<Rightarrow> nat pmf"
            return_pmf (of_bool c + 2 * h)
         }"
 
-text \<open>To verify that the distribution of the result of @{term "binary_dice_roll"} is 
+text \<open>To verify that the distribution of the result of @{term "binary_dice_roll"} is
 @{term "binary_dice_roll_pmf"} we can rely on the @{thm [source] pmf_of_ra_simps} simp rules
 and the @{thm [source] "terminates_almost_surely_intros"} introduction rules:\<close>
 
 lemma "pmf_of_ra (binary_dice_roll n) = binary_dice_roll_pmf n"
-  using binary_dice_roll_terminates 
+  using binary_dice_roll_terminates
   by (induction n) (simp_all add:terminates_almost_surely_intros pmf_of_ra_simps)
 
 text \<open>Let us now consider an algorithm that does not terminate unconditionally but just almost
@@ -60,7 +60,7 @@ partial_function (random_alg) binary_geometric :: "nat \<Rightarrow> nat random_
            if c then (return_ra n) else binary_geometric (n+1)
         }"
 
-text \<open>This is necessary for running randomized algorithms defined with the 
+text \<open>This is necessary for running randomized algorithms defined with the
 @{command "partial_function"} directive:\<close>
 declare binary_geometric.simps[code]
 
@@ -75,7 +75,7 @@ partial_function (spmf) binary_geometric_spmf :: "nat \<Rightarrow> nat spmf"
 
 text \<open>We use the transfer rules for @{term "spmf_of_ra"} to show the correspondence:\<close>
 
-lemma binary_geometric_ra_correct: 
+lemma binary_geometric_ra_correct:
   "spmf_of_ra (binary_geometric x) = binary_geometric_spmf x"
 proof -
   include lifting_syntax
@@ -97,7 +97,7 @@ partial_function (random_alg) bernoulli_ra :: "real \<Rightarrow> bool random_al
      else if p < 1 / 2 then bernoulli_ra (2 * p)
      else bernoulli_ra (2 * p - 1)
    }"
-  
+
 declare bernoulli_ra.simps[code]
 
 text \<open>The following is a different technique to show equivalence of an SPMF with a randomized
@@ -121,19 +121,19 @@ text \<open>Then relying on the fact that the SPMF has weight one, we can derive
 
 lemma bernoulli_ra_correct: "bernoulli x = spmf_of_ra (bernoulli_ra x)"
   using lossless_bernoulli weight_spmf_le_1 unfolding lossless_spmf_def
-  by (intro eq_iff_ord_spmf[OF _ bernoulli_ra_correct_aux]) auto 
+  by (intro eq_iff_ord_spmf[OF _ bernoulli_ra_correct_aux]) auto
 
 text \<open>Because @{term "bernoulli p"} is a lossless SPMF equivalent to
 @{term "spmf_of_pmf (bernoulli_pmf p)"} it is also possible to express the above, without referring
 to SPMFs:\<close>
 
-lemma 
+lemma
   "terminates_almost_surely (bernoulli_ra p)"
   "bernoulli_pmf p = pmf_of_ra (bernoulli_ra p)"
   unfolding terminates_almost_surely_def pmf_of_ra_def bernoulli_ra_correct[symmetric]
   by (simp_all add: bernoulli_eq_bernoulli_pmf pmf_of_spmf)
 
-context 
+context
   includes lifting_syntax
 begin
 
@@ -143,7 +143,7 @@ lemma bernoulli_ra_transfer [transfer_rule]:
 
 end
 
-text \<open>Using the randomized algorithm for the Bernoulli distribution, we can introduce one for the 
+text \<open>Using the randomized algorithm for the Bernoulli distribution, we can introduce one for the
 general geometric distribution:\<close>
 
 partial_function (random_alg) geometric_ra :: "real \<Rightarrow> nat random_alg" where
@@ -167,12 +167,12 @@ qed
 text \<open>Replication of a distribution\<close>
 
 fun replicate_ra :: "nat \<Rightarrow> 'a random_alg \<Rightarrow> 'a list random_alg"
-  where 
+  where
     "replicate_ra 0 f = return_ra []" |
     "replicate_ra (Suc n) f = do { xh \<leftarrow> f; xt \<leftarrow> replicate_ra n f; return_ra (xh#xt) }"
 
 fun replicate_spmf :: "nat \<Rightarrow> 'a spmf \<Rightarrow> 'a list spmf"
-  where 
+  where
     "replicate_spmf 0 f = return_spmf []" |
     "replicate_spmf (Suc n) f = do { xh \<leftarrow> f; xt \<leftarrow> replicate_spmf n f; return_spmf (xh#xt) }"
 
@@ -200,7 +200,7 @@ proof -
     by (simp flip:map_spmf_of_pmf add:spmf_of_ra_map)
 qed
 
-text \<open>Running randomized algorithms: Here we use the PRG introduced in 
+text \<open>Running randomized algorithms: Here we use the PRG introduced in
 Section~\ref{sec:permuted_congruential_generator}.\<close>
 
 value "run_ra (binomial_ra 10 0.5) (random_coins 42)"

@@ -4,9 +4,9 @@ theory Tau_Additivity
   imports "HOL-Analysis.Regularity"
 begin
 
-text \<open>In this section we show $\tau$-additivity for measures, that are compatible with a 
+text \<open>In this section we show $\tau$-additivity for measures, that are compatible with a
 second-countable topology. This will be essential for the verification of the Scott-continuity
-of the monad morphisms. To understand the property, let us recall that for general countable chains 
+of the monad morphisms. To understand the property, let us recall that for general countable chains
 of measurable sets, it is possible to deduce that the supremum
 of the measures of the sets is equal to the measure of the union of the family:
 \[
@@ -15,8 +15,8 @@ of the measures of the sets is equal to the measure of the union of the family:
 this is shown in @{thm [source] SUP_emeasure_incseq}.
 
 It is possible to generalize that to arbitrary chains
-\footnote{More generally families closed under pairwise unions.} of open sets for some measures 
-without the restriction of countability, such measures are called 
+\footnote{More generally families closed under pairwise unions.} of open sets for some measures
+without the restriction of countability, such measures are called
 $\tau$-additive~\cite{fremlin2000}.
 
 In the following this property is derived for measures that are at least borel (i.e. every open
@@ -54,8 +54,8 @@ proof (cases "A \<noteq> {}")
   have 2:"emeasure M K \<le> ?R" if K_def: "compact K" "K \<subseteq> \<Union>A" for K
   proof (cases "K \<noteq> {}")
     case True
-    obtain T where T_def: "K \<subseteq> \<Union>T" "T \<subseteq> A" "finite T" 
-      using compactE[OF K_def of] that by metis 
+    obtain T where T_def: "K \<subseteq> \<Union>T" "T \<subseteq> A" "finite T"
+      using compactE[OF K_def of] that by metis
     have T_ne: "T \<noteq> {}" using T_def(1) True by auto
     define t where "t = \<Union>T"
     have t_in: "t \<in> A"
@@ -65,7 +65,7 @@ proof (cases "A \<noteq> {}")
     hence "emeasure M K \<le> emeasure M t"
       using 0 sb t_in by (intro emeasure_mono) auto
     also have "... \<le> ?R"
-      using t_in by (intro cSup_upper) auto 
+      using t_in by (intro cSup_upper) auto
     finally show ?thesis
       by simp
   next
@@ -86,7 +86,7 @@ proof (cases "A \<noteq> {}")
   ultimately show ?thesis by auto
 next
   case False
-  thus ?thesis by (simp add:bot_ennreal) 
+  thus ?thesis by (simp add:bot_ennreal)
 qed
 
 lemma chain_imp_union_stable:
@@ -138,7 +138,7 @@ proof -
   also have "... = (SUP a \<in> A. emeasure N a)"
     by (intro tau_additivity_aux sets_N of ud fin_N) auto
   also have "... = (SUP a\<in>A. emeasure M ((\<lambda>x. x) -` a \<inter> space M))"
-    unfolding N_def using of 
+    unfolding N_def using of
     by (intro arg_cong[where f="Sup"] image_cong emeasure_distr id_borel) auto
   also have "... = ?R" by simp
   finally show ?thesis by simp

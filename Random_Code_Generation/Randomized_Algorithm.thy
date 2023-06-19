@@ -1,7 +1,7 @@
 section \<open>Randomized Algorithms\label{sec:randomized_algorithm}\<close>
 
-text \<open>This section introduces the @{term "random_alg"} monad, that can be used to represent 
-executable randomized algorithms. It is a type-definition based on the internal representation from 
+text \<open>This section introduces the @{term "random_alg"} monad, that can be used to represent
+executable randomized algorithms. It is a type-definition based on the internal representation from
 Section~\ref{sec:randomized_algorithm_internal} with the wellformedness restriction.
 
 Additionally, we introduce the @{term "spmf_of_ra"} morphism, which represent the distribution of
@@ -12,8 +12,8 @@ which it is possible to establish the corresponding SPMF of a randomized algorit
 case of (possibly infinite) loops.\<close>
 
 theory Randomized_Algorithm
-  imports 
-    Randomized_Algorithm_Internal     
+  imports
+    Randomized_Algorithm_Internal
 begin
 
 text \<open>A stronger variant of @{thm [source] pmf_eqI}.\<close>
@@ -59,10 +59,10 @@ typedef 'a random_alg = "{(r :: 'a random_alg_int). wf_random r}"
 setup_lifting type_definition_random_alg
 
 lift_definition return_ra :: "'a \<Rightarrow> 'a random_alg" is return_rai
-  by (rule wf_return) 
+  by (rule wf_return)
 
 lift_definition coin_ra :: "bool random_alg" is coin_rai
-  by (rule wf_coin) 
+  by (rule wf_coin)
 
 lift_definition bind_ra :: "'a random_alg \<Rightarrow> ('a \<Rightarrow> 'b random_alg) \<Rightarrow> 'b random_alg" is bind_rai
   by (rule wf_bind)
@@ -83,7 +83,7 @@ lemma bind_return_ra:
   "bind_ra m return_ra = m"
   by (rule bind_return_rai[transferred])
 
-lift_definition lub_ra :: "'a random_alg set \<Rightarrow> 'a random_alg" is 
+lift_definition lub_ra :: "'a random_alg set \<Rightarrow> 'a random_alg" is
   "(\<lambda>F. if Complete_Partial_Order.chain ord_rai F then lub_rai F else (\<lambda>x. None))"
   using wf_lub wf_empty by auto
 
@@ -99,7 +99,7 @@ interpretation pmf_as_measure .
 
 lemma distr_rai_is_pmf:
   assumes "wf_random f"
-  shows 
+  shows
     "prob_space (distr_rai f)" (is "?A")
     "sets (distr_rai f) = UNIV" (is "?B")
     "AE x in distr_rai f. measure (distr_rai f) {x} \<noteq> 0" (is "?C")
@@ -119,7 +119,7 @@ proof -
     by (subst AE_distr_iff) auto
   moreover have "countable (Some ` range_rm f \<union> {None})"
     using countable_range[OF assms] by simp
-  moreover have "p.events = UNIV" 
+  moreover have "p.events = UNIV"
     unfolding distr_rai_def by simp
   ultimately show ?C
     by (intro iffD2[OF p.AE_support_countable] exI[where x= "Some ` range_rm f \<union> {None}"]) auto
@@ -130,7 +130,7 @@ lift_definition spmf_of_ra :: "'a random_alg \<Rightarrow> 'a spmf" is "distr_ra
 
 lemma used_bits_distr_is_pmf:
   assumes "wf_random f"
-  shows 
+  shows
     "prob_space (used_bits_distr f)" (is "?A")
     "sets (used_bits_distr f) = UNIV" (is "?B")
     "AE x in used_bits_distr f. measure (used_bits_distr f) {x} \<noteq> 0" (is "?C")
@@ -142,7 +142,7 @@ proof -
     by auto
   show ?B
     unfolding used_bits_distr_def by simp
-  have "p.events = UNIV" 
+  have "p.events = UNIV"
     unfolding used_bits_distr_def by simp
   thus ?C
     by (intro iffD2[OF p.AE_support_countable] exI[where x= "UNIV"]) auto
@@ -160,7 +160,7 @@ lemma wf_rep_rand_alg:
   "wf_random (Rep_random_alg f)"
   using Rep_random_alg by auto
 
-lemma set_pmf_spmf_of_ra: 
+lemma set_pmf_spmf_of_ra:
   "set_pmf (spmf_of_ra f) \<subseteq> Some ` range_rm (Rep_random_alg f) \<union> {None}"
 proof
   let ?f = "Rep_random_alg f"
@@ -171,7 +171,7 @@ proof
   hence "measure (distr_rai ?f) {x} > 0"
     by (subst spmf_of_ra.rep_eq[symmetric]) (simp add: pmf.rep_eq)
   hence "0 < measure \<B> {\<omega>. map_option fst (?f \<omega>) = x}"
-    using distr_rai_measurable[OF wf_rep_rand_alg] unfolding distr_rai_def 
+    using distr_rai_measurable[OF wf_rep_rand_alg] unfolding distr_rai_def
     by (subst (asm) measure_distr) (simp_all add:vimage_def space_coin_space)
   moreover have "{\<omega>. map_option fst (?f \<omega>) = x} = {}" if "x \<notin> range (map_option fst \<circ> ?f)"
     using that by (auto simp:set_eq_iff image_iff)
@@ -180,7 +180,7 @@ proof
   ultimately have "x \<in> range (map_option fst \<circ> ?f)"
     by auto
   thus "x \<in> Some ` range_rm (Rep_random_alg f) \<union> {None}"
-    unfolding range_rm_def by (cases x) auto 
+    unfolding range_rm_def by (cases x) auto
 qed
 
 lemma spmf_of_ra_return: "spmf_of_ra (return_ra x) = return_spmf x"
@@ -201,7 +201,7 @@ proof -
     using measure_pmf_inject by blast
 qed
 
-lemma spmf_of_ra_bind: 
+lemma spmf_of_ra_bind:
   "spmf_of_ra (bind_ra f g) = bind_spmf (spmf_of_ra f) (\<lambda>x. spmf_of_ra (g x))" (is "?L = ?R")
 proof -
   let ?f = "Rep_random_alg f"
@@ -212,17 +212,17 @@ proof -
 
   have "measure_pmf ?L = distr_rai (?f \<bind> ?g)"
     unfolding spmf_of_ra.rep_eq bind_ra.rep_eq by (simp add:comp_def)
-  also have "... = distr_rai ?f \<bind> 
+  also have "... = distr_rai ?f \<bind>
     (\<lambda>x. if x \<in> Some ` range_rm ?f then distr_rai (?g (the x)) else return \<D> None)"
-    by (intro distr_rai_bind wf_rep_rand_alg)  
+    by (intro distr_rai_bind wf_rep_rand_alg)
   also have "... = measure_pmf (spmf_of_ra f) \<bind>
     (\<lambda>x. measure_pmf (if x \<in> Some ` range_rm ?f then spmf_of_ra (g (the x)) else return_pmf None))"
     by (intro arg_cong2[where f="bind"] ext) (auto simp:spmf_of_ra.rep_eq return_discrete)
-  also have "... = measure_pmf (spmf_of_ra f \<bind> 
+  also have "... = measure_pmf (spmf_of_ra f \<bind>
     (\<lambda>x. if x \<in> Some ` range_rm ?f then spmf_of_ra (g (the x)) else return_pmf None))"
     unfolding bind_pmf.rep_eq by (simp add:comp_def id_def)
   also have "... = measure_pmf ?R"
-    using 0 unfolding bind_spmf_def 
+    using 0 unfolding bind_spmf_def
     by (intro arg_cong[where f="measure_pmf"] bind_pmf_cong refl) (auto split:option.split)
   finally have "measure_pmf ?L = measure_pmf ?R" by simp
   thus ?thesis
@@ -236,7 +236,7 @@ proof -
   have "ord_rai (Rep_random_alg f) (Rep_random_alg g)"
     using assms unfolding ord_ra.rep_eq by simp
   hence "ennreal (spmf (spmf_of_ra f) x) \<le> ennreal (spmf (spmf_of_ra g) x)" for x
-    unfolding emeasure_pmf_single[symmetric] spmf_of_ra.rep_eq 
+    unfolding emeasure_pmf_single[symmetric] spmf_of_ra.rep_eq
     by (intro distr_rai_ord_rai_mono wf_rep_rand_alg) auto
   hence "spmf (spmf_of_ra f) x \<le> spmf (spmf_of_ra g) x" for x
     by simp
@@ -272,7 +272,7 @@ proof (cases "A \<noteq> {}")
 
   show ?thesis
   proof (rule spmf_eqI)
-    fix x :: "'a"  
+    fix x :: "'a"
     have "ennreal (spmf ?L x) = emeasure (distr_rai (lub_rai (Rep_random_alg ` A))) {Some x}"
       using 0 unfolding emeasure_pmf_single[symmetric] spmf_of_ra.rep_eq lub_ra.rep_eq by simp
     also have "... = (SUP f\<in>Rep_random_alg ` A. emeasure (distr_rai f) {Some x})"
@@ -284,7 +284,7 @@ proof (cases "A \<noteq> {}")
     also have "... = ennreal (spmf ?R x)"
       using True by (intro ennreal_spmf_lub_spmf[symmetric] 1) auto
     finally have "ennreal (spmf ?L x) = ennreal (spmf ?R x)"
-      by simp 
+      by simp
     thus "spmf ?L x = spmf ?R x"
       by simp
   qed
@@ -323,7 +323,7 @@ proof -
     thus ?thesis
       using inj_onD[OF assms(3)] by simp
   qed
-  moreover have "img_ord f ord x (l2 A)" 
+  moreover have "img_ord f ord x (l2 A)"
     if "x \<in> A" "Complete_Partial_Order.chain (img_ord f ord) A" for x A
   proof -
     have 0:"Complete_Partial_Order.chain ord (f ` A)"
@@ -334,7 +334,7 @@ proof -
       unfolding img_ord_def assms(1)[OF 0] by auto
   qed
   moreover have "img_ord f ord (l2 A) z"
-    if "Complete_Partial_Order.chain (img_ord f ord) A" "(\<forall>x. x \<in> A \<longrightarrow> img_ord f ord x z)" 
+    if "Complete_Partial_Order.chain (img_ord f ord) A" "(\<forall>x. x \<in> A \<longrightarrow> img_ord f ord x z)"
     for z A
   proof -
     have 0:"Complete_Partial_Order.chain ord (f ` A)"
@@ -371,7 +371,7 @@ abbreviation "mono_ra \<equiv> monotone (fun_ord ord_ra) ord_ra"
 lemma bind_mono_aux_ra:
   assumes "ord_ra f1 f2" "\<And>y. ord_ra (g1 y) (g2 y)"
   shows "ord_ra (bind_ra f1 g1) (bind_ra f2 g2)"
-  using assms unfolding ord_ra.rep_eq bind_ra.rep_eq 
+  using assms unfolding ord_ra.rep_eq bind_ra.rep_eq
   by (intro bind_rai_mono) auto
 
 lemma bind_mono_ra [partial_function_mono]:
@@ -389,7 +389,7 @@ lemmas spmf_of_ra_simps =
   spmf_of_ra_return spmf_of_ra_bind spmf_of_ra_coin spmf_of_ra_map
 
 lemma map_mono_ra [partial_function_mono]:
-  assumes "mono_ra B" 
+  assumes "mono_ra B"
   shows "mono_ra (\<lambda>f. map_ra g (B f))"
   using assms unfolding map_ra_def by (intro bind_mono_ra) auto
 
@@ -409,7 +409,7 @@ proof (rule ccpo.admissibleI)
     and chain2: "Complete_Partial_Order.chain (ord_ra) (snd ` Y)"
     using chain by(rule chain_imageI; clarsimp)+
   from Y have Y1: "fst ` Y \<noteq> {}" and Y2: "snd ` Y \<noteq> {}" by auto
- 
+
   have "lub_spmf (fst ` Y) = lub_spmf (spmf_of_ra ` snd ` Y)"
     unfolding image_image using R
     by (intro arg_cong[of _ _ lub_spmf] image_cong) (auto simp: rel_spmf_of_ra_def)
@@ -425,7 +425,7 @@ lemma admissible_rel_spmf_of_ra_cont [cont_intro]:
   fixes ord
   shows "\<lbrakk> mcont lub ord lub_spmf (ord_spmf (=)) f; mcont lub ord lub_ra ord_ra g \<rbrakk>
   \<Longrightarrow> ccpo.admissible lub ord (\<lambda>x. rel_spmf_of_ra (f x) (g x))"
-  by (rule admissible_subst[OF admissible_rel_spmf_of_ra, where f="\<lambda>x. (f x, g x)", simplified]) 
+  by (rule admissible_subst[OF admissible_rel_spmf_of_ra, where f="\<lambda>x. (f x, g x)", simplified])
      (rule mcont_Pair)
 
 lemma mcont2mcont_spmf_of_ra[THEN spmf.mcont2mcont, cont_intro]:
@@ -442,12 +442,12 @@ lemma fixp_ra_parametric[transfer_rule]:
   and g: "\<And>x. mono_ra (\<lambda>f. G f x)"
   and param: "((A ===> rel_spmf_of_ra) ===> A ===> rel_spmf_of_ra) F G"
   shows "(A ===> rel_spmf_of_ra) (spmf.fixp_fun F) (random_alg_pf.fixp_fun G)"
-  using f g 
-proof(rule parallel_fixp_induct_1_1[OF 
-      partial_function_definitions_spmf random_alg_pfd _ _ reflexive reflexive, 
+  using f g
+proof(rule parallel_fixp_induct_1_1[OF
+      partial_function_definitions_spmf random_alg_pfd _ _ reflexive reflexive,
         where P="(A ===> rel_spmf_of_ra)"])
-  show "ccpo.admissible (prod_lub (fun_lub lub_spmf) (fun_lub lub_ra)) 
-        (rel_prod (fun_ord (ord_spmf (=))) (fun_ord ord_ra)) 
+  show "ccpo.admissible (prod_lub (fun_lub lub_spmf) (fun_lub lub_ra))
+        (rel_prod (fun_ord (ord_spmf (=))) (fun_ord ord_ra))
         (\<lambda>x. (A ===> rel_spmf_of_ra) (fst x) (snd x))"
     unfolding rel_fun_def
     by(rule admissible_all admissible_imp cont_intro)+
@@ -464,7 +464,7 @@ lemma bind_ra_tranfer[transfer_rule]:
   "(rel_spmf_of_ra ===> ((=) ===> rel_spmf_of_ra) ===> rel_spmf_of_ra) bind_spmf bind_ra"
   unfolding rel_fun_def rel_spmf_of_ra_def spmf_of_ra_bind by simp presburger
 
-lemma coin_ra_tranfer[transfer_rule]: 
+lemma coin_ra_tranfer[transfer_rule]:
   "rel_spmf_of_ra coin_spmf coin_ra"
   unfolding rel_fun_def rel_spmf_of_ra_def spmf_of_ra_coin by simp
 
@@ -477,7 +477,7 @@ end
 declare [[function_internals]]
 
 declaration \<open>Partial_Function.init "random_alg" \<^term>\<open>random_alg_pf.fixp_fun\<close>
-  \<^term>\<open>random_alg_pf.mono_body\<close> 
+  \<^term>\<open>random_alg_pf.mono_body\<close>
   @{thm random_alg_pf.fixp_rule_uc} @{thm random_alg_pf.fixp_induct_uc}
   NONE\<close>
 
@@ -510,7 +510,7 @@ lemma pmf_of_ra_bind:
   shows "pmf_of_ra (f \<bind> g) = pmf_of_ra f \<bind> (\<lambda>x. pmf_of_ra (g x))" (is "?L = ?R")
 proof -
   have 0:"x \<noteq> None" if "x \<in> set_pmf (spmf_of_ra f)" for x
-    using assms that unfolding terminates_almost_surely_def 
+    using assms that unfolding terminates_almost_surely_def
     by (meson lossless_iff_set_pmf_None)
 
   have "?L = spmf_of_ra f \<bind> (\<lambda>x. map_pmf the (case_option (return_pmf None) (spmf_of_ra \<circ> g) x))"
@@ -532,11 +532,11 @@ lemma pmf_of_ra_map:
   shows "pmf_of_ra (map_ra f m) = map_pmf f (pmf_of_ra m)"
   unfolding map_ra_def pmf_of_ra_bind[OF assms] pmf_of_ra_return map_pmf_def by simp
 
-lemma terminates_almost_surely_return: 
+lemma terminates_almost_surely_return:
   "terminates_almost_surely (return_ra x)"
   unfolding terminates_almost_surely_def spmf_of_ra_return by simp
 
-lemma terminates_almost_surely_coin: 
+lemma terminates_almost_surely_coin:
   "terminates_almost_surely coin_ra"
   unfolding terminates_almost_surely_def spmf_of_ra_coin by simp
 
@@ -546,7 +546,7 @@ lemma terminates_almost_surely_bind:
   shows "terminates_almost_surely (f \<bind> g)"
 proof -
   have 0: "None \<notin> set_pmf (spmf_of_ra f)"
-    using assms(1) lossless_iff_set_pmf_None unfolding terminates_almost_surely_def 
+    using assms(1) lossless_iff_set_pmf_None unfolding terminates_almost_surely_def
     by blast
   hence "Some x \<in> set_pmf (spmf_of_ra f) \<longleftrightarrow> x \<in> the ` set_pmf (spmf_of_ra f)" for x
     by (metis image_iff option.collapse option.sel)
@@ -561,15 +561,15 @@ qed
 lemma terminates_almost_surely_map:
   assumes "terminates_almost_surely p"
   shows "terminates_almost_surely (map_ra f p)"
-  unfolding map_ra_def 
+  unfolding map_ra_def
   by (intro assms terminates_almost_surely_bind terminates_almost_surely_return)
 
 lemmas pmf_of_ra_simps =
   pmf_of_ra_return pmf_of_ra_bind pmf_of_ra_coin pmf_of_ra_map
 
 lemmas terminates_almost_surely_intros =
-  terminates_almost_surely_return 
-  terminates_almost_surely_bind 
+  terminates_almost_surely_return
+  terminates_almost_surely_bind
   terminates_almost_surely_coin
   terminates_almost_surely_map
 

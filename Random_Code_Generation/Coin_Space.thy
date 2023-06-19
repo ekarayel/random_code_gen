@@ -4,12 +4,12 @@ text \<open>In this section, we introduce the coin flip space, an infinite lazy 
 introduce a probability measure and topology for the space.\<close>
 
 theory Coin_Space
-  imports 
-    "HOL-Probability.Probability" 
+  imports
+    "HOL-Probability.Probability"
     "HOL-Library.Code_Lazy"
 begin
 
-lemma stream_eq_iff: 
+lemma stream_eq_iff:
   assumes "\<And>i. x !! i = y !! i"
   shows "x = y"
 proof -
@@ -20,7 +20,7 @@ qed
 
 text \<open>Notation for the discrete $\sigma$-algebra:\<close>
 
-abbreviation discrete_sigma_algebra 
+abbreviation discrete_sigma_algebra
   where "discrete_sigma_algebra \<equiv> count_space UNIV"
 
 bundle discrete_sigma_algebra_notation
@@ -42,7 +42,7 @@ lemma map_prod_measurable[measurable]:
   using assms by (subst measurable_pair_iff) simp
 
 lemma measurable_sigma_sets_with_exception:
-  fixes f :: "'a \<Rightarrow> 'b :: countable" 
+  fixes f :: "'a \<Rightarrow> 'b :: countable"
   assumes "\<And>x. x \<noteq> d \<Longrightarrow> f -` {x} \<inter> space M \<in> sets M"
   shows "f \<in> M \<rightarrow>\<^sub>M count_space UNIV"
 proof -
@@ -59,7 +59,7 @@ proof -
     also have "... \<in> sets M"
       using assms
       by (intro sets.compl_sets sets.countable_UN) auto
-    finally show ?thesis 
+    finally show ?thesis
       using True by simp
   next
     case False
@@ -195,7 +195,7 @@ proof -
 qed
 
 lemma to_stream_comb_seq_eq:
-  "to_stream (comb_seq n x y) = stake n (to_stream x) @- to_stream y" 
+  "to_stream (comb_seq n x y) = stake n (to_stream x) @- to_stream y"
   unfolding comb_seq_def to_stream_def
   by (intro stream_eq_iff) simp
 
@@ -207,7 +207,7 @@ lemma snth_to_stream: "snth (to_stream x) = x"
 
 lemma (in prob_space) branch_stream_space:
   "(\<lambda>(x, y). stake n x @- y) \<in> stream_space M \<Otimes>\<^sub>M stream_space M \<rightarrow>\<^sub>M stream_space M"
-  "distr (stream_space M \<Otimes>\<^sub>M stream_space M) (stream_space M) (\<lambda>(x,y). stake n x@-y) 
+  "distr (stream_space M \<Otimes>\<^sub>M stream_space M) (stream_space M) (\<lambda>(x,y). stake n x@-y)
     = stream_space M" (is "?L = ?R")
 proof -
   let ?T = "stream_space M"
@@ -225,7 +225,7 @@ proof -
      ?T (\<lambda>(x, y). stake n x @- y)"
     using prob_space_imp_sigma_finite[OF prob_space_stream_space]
     by (intro arg_cong2[where f="(\<lambda>x y. distr x ?T y)"] pair_measure_distr)
-      (simp_all flip:stream_space_eq_distr)  
+      (simp_all flip:stream_space_eq_distr)
   also have "... = distr (?S\<Otimes>\<^sub>M?S) ?T ((\<lambda>(x, y). stake n x@-y)\<circ>(\<lambda>(x, y). (to_stream x,to_stream y)))"
     by (intro distr_distr 0) (simp add: measurable_pair_iff)
   also have "... = distr (?S\<Otimes>\<^sub>M?S) ?T ((\<lambda>(x, y). stake n (to_stream x) @- to_stream y))"
@@ -243,8 +243,8 @@ proof -
     by simp
 qed
 
-text \<open>The type for the coin flip space is isomorphic to @{typ "bool stream"}. Nevertheless, we 
-introduce it as a separate type to be able to introduce a topology and mark it as a lazy type for 
+text \<open>The type for the coin flip space is isomorphic to @{typ "bool stream"}. Nevertheless, we
+introduce it as a separate type to be able to introduce a topology and mark it as a lazy type for
 code-generation:\<close>
 
 codatatype coin_stream = Coin (chd:bool) (ctl:coin_stream)
@@ -254,7 +254,7 @@ code_lazy_type coin_stream
 primcorec from_coins :: "coin_stream \<Rightarrow> bool stream" where
   "from_coins coins = chd coins ## (from_coins (ctl coins))"
 
-primcorec to_coins :: "bool stream \<Rightarrow> coin_stream" where 
+primcorec to_coins :: "bool stream \<Rightarrow> coin_stream" where
   "to_coins str = Coin (shd str) (to_coins (stl str))"
 
 lemma to_from_coins: "to_coins (from_coins x) = x"
@@ -274,7 +274,7 @@ definition cnth where "cnth x n = from_coins x !! n"
 definition ctake where "ctake n x = stake n (from_coins x)"
 definition cdrop where "cdrop n x = to_coins (sdrop n (from_coins x))"
 definition rel_coins where "rel_coins x y = (to_coins x = y)"
-definition cprefix where "cprefix x y \<longleftrightarrow> ctake (length x) y = x" 
+definition cprefix where "cprefix x y \<longleftrightarrow> ctake (length x) y = x"
 definition cconst where "cconst x = to_coins (sconst x)"
 
 context
@@ -312,7 +312,7 @@ lemma cconst_transfer [transfer_rule]: "((=) ===> rel_coins) sconst cconst"
 
 end
 
-lemma coins_eq_iff: 
+lemma coins_eq_iff:
   assumes "\<And>i. cnth x i = cnth y i"
   shows "x = y"
 proof -
@@ -429,7 +429,7 @@ proof (induction m arbitrary: xs)
 qed auto
 
 lemma ctake_shift_small [simp]: "m \<le> length xs \<Longrightarrow> ctake m (cshift xs ys) = take m xs"
-  and ctake_shift_big [simp]: 
+  and ctake_shift_big [simp]:
     "m \<ge> length xs \<Longrightarrow> ctake m (cshift xs ys) = xs @ ctake (m - length xs) ys"
   by (subst ctake_shift; simp)+
 
@@ -441,9 +441,9 @@ proof (induction m arbitrary: xs)
     by (cases xs) auto
 qed auto
 
-lemma cdrop_shift_small [simp]: 
+lemma cdrop_shift_small [simp]:
     "m \<le> length xs \<Longrightarrow> cdrop m (cshift xs ys) = cshift (drop m xs) ys"
-  and cdrop_shift_big [simp]: 
+  and cdrop_shift_big [simp]:
     "m \<ge> length xs \<Longrightarrow> cdrop m (cshift xs ys) = cdrop (m - length xs) ys"
   by (subst cdrop_shift; simp)+
 
@@ -456,34 +456,34 @@ primcorec cmap_iterate ::" ('a \<Rightarrow> bool) \<Rightarrow> ('a \<Rightarro
 lemma cmap_iterate: "cmap_iterate m f s = to_coins (smap m (siterate f s))"
 proof (rule coin_stream.coinduct
     [where R="(\<lambda>xs ys. (\<exists>x. xs = cmap_iterate m f x \<and> ys= to_coins (smap m (siterate f x))))"])
-  show "\<exists>x. cmap_iterate m f s = cmap_iterate m f x \<and> 
+  show "\<exists>x. cmap_iterate m f s = cmap_iterate m f x \<and>
         to_coins (smap m (siterate f s)) = to_coins (smap m (siterate f x))"
-    by (intro exI[where x="s"] refl conjI) 
+    by (intro exI[where x="s"] refl conjI)
 next
   fix xs ys
-  assume "\<exists>x. xs = cmap_iterate m f x \<and> ys = to_coins (smap m (siterate f x))" 
+  assume "\<exists>x. xs = cmap_iterate m f x \<and> ys = to_coins (smap m (siterate f x))"
   then obtain x where 0:"xs = cmap_iterate m f x" "ys = to_coins (smap m (siterate f x))"
     by auto
 
   have "chd xs = chd ys"
     unfolding 0 by (subst cmap_iterate.ctr, subst siterate.ctr) simp
-  moreover have "ctl xs = cmap_iterate m f (f x)" 
+  moreover have "ctl xs = cmap_iterate m f (f x)"
     unfolding 0 by (subst cmap_iterate.ctr) simp
   moreover have "ctl ys = to_coins(smap m(siterate f (f x)))"
     unfolding 0 by (subst siterate.ctr) simp
-  ultimately show 
+  ultimately show
     "chd xs = chd ys \<and> (\<exists>x. ctl xs=cmap_iterate m f x \<and> ctl ys = to_coins (smap m (siterate f x)))"
     by auto
 qed
 
 definition build_coin_gen ::  "('a \<Rightarrow> bool list) \<Rightarrow> ('a \<Rightarrow> 'a) \<Rightarrow> 'a \<Rightarrow> coin_stream"
-  where 
-    "build_coin_gen m f s = cmap_iterate (hd \<circ> fst) 
+  where
+    "build_coin_gen m f s = cmap_iterate (hd \<circ> fst)
       (\<lambda>(r,s'). (if tl r = [] then (m s', f s') else (tl r, s'))) (m s, f s)"
 
 lemma build_coin_gen_aux:
   fixes f :: "'a \<Rightarrow> 'b stream"
-  assumes "\<And>x. (\<exists>n y. n \<noteq> [] \<and> f x = n@-f y \<and> g x = n@-g y)" 
+  assumes "\<And>x. (\<exists>n y. n \<noteq> [] \<and> f x = n@-f y \<and> g x = n@-g y)"
   shows "f x = g x"
 proof (rule stream.coinduct[where R="(\<lambda>xs ys. (\<exists>x n. xs = n @- (f x) \<and> ys = n @- (g x)))"])
   show "\<exists>y n. f x = n @-(f y) \<and> g x = n @- (g y)"
@@ -510,7 +510,7 @@ lemma build_coin_gen:
 proof -
   let ?g = "(\<lambda>(r, s'). if tl r = [] then (m s', f s') else (tl r, s'))"
 
-  have liter: "smap (hd \<circ> fst) (siterate ?g (bs, x)) = 
+  have liter: "smap (hd \<circ> fst) (siterate ?g (bs, x)) =
     bs @- (smap (hd \<circ> fst) (siterate ?g (m x, f x)))" if "bs \<noteq> []" for x bs
     using that
   proof (induction bs rule:list_nonempty_induct)
@@ -520,12 +520,12 @@ proof -
     case (cons y ys)
     then show ?case by (subst siterate.ctr) (simp add:comp_def)
   qed
-  have "smap(hd\<circ>fst) (siterate ?g (m x,f x)) = m x@- smap(hd\<circ>fst) (siterate ?g (m (f x), f (f x)))" 
+  have "smap(hd\<circ>fst) (siterate ?g (m x,f x)) = m x@- smap(hd\<circ>fst) (siterate ?g (m (f x), f (f x)))"
     for x by (subst liter[OF assms]) auto
   moreover have "flat (smap m (siterate f x)) = m x @- flat (smap m (siterate f (f x)))" for x
-    by (subst siterate.ctr) (simp add:flat_Stream[OF assms]) 
+    by (subst siterate.ctr) (simp add:flat_Stream[OF assms])
 
-  ultimately have "\<exists>n y. n \<noteq> [] \<and> 
+  ultimately have "\<exists>n y. n \<noteq> [] \<and>
     smap (hd \<circ> fst) (siterate ?g (m x, f x)) = n @- smap (hd \<circ> fst) (siterate ?g (m y, f y)) \<and>
     flat (smap m (siterate f x)) = n @- flat (smap m (siterate f y))" for x
     by (intro exI[where x="m x"] exI[where x="f x"] conjI assms)
@@ -564,8 +564,8 @@ lemma from_coins_measurable: "from_coins \<in> \<B> \<rightarrow>\<^sub>M (strea
   unfolding coin_space_def by (intro measurable_embed_measure1) (simp add:from_to_coins)
 
 lemma to_coins_measurable: "to_coins \<in> (stream_space (pmf_of_set UNIV)) \<rightarrow>\<^sub>M \<B>"
-  unfolding coin_space_def 
-  by (intro measurable_embed_measure2 bij_is_inj[OF bij_to_coins]) 
+  unfolding coin_space_def
+  by (intro measurable_embed_measure2 bij_is_inj[OF bij_to_coins])
 
 lemma chd_measurable: "chd \<in> \<B> \<rightarrow>\<^sub>M \<D>"
 proof -
@@ -578,8 +578,8 @@ qed
 lemma cnth_measurable: "(\<lambda>xs. cnth xs i) \<in> \<B> \<rightarrow>\<^sub>M \<D>"
   unfolding coin_space_def cnth_def by (intro measurable_embed_measure1) (simp add:from_to_coins)
 
-lemma B_eq_distr: 
-  "stream_space (pmf_of_set UNIV) = distr \<B> (stream_space (pmf_of_set UNIV)) from_coins" 
+lemma B_eq_distr:
+  "stream_space (pmf_of_set UNIV) = distr \<B> (stream_space (pmf_of_set UNIV)) from_coins"
   (is "?L = ?R")
 proof -
   let ?S = "stream_space (pmf_of_set UNIV)"
@@ -599,7 +599,7 @@ lemma B_t_finite: "emeasure \<B> (space \<B>) = 1"
 proof -
   let ?S = "stream_space (pmf_of_set (UNIV::bool set))"
   have "1 = emeasure ?S (space ?S)"
-    by (intro prob_space.emeasure_space_1[symmetric] prob_space.prob_space_stream_space 
+    by (intro prob_space.emeasure_space_1[symmetric] prob_space.prob_space_stream_space
         prob_space_measure_pmf)
   also have "... = emeasure \<B> (from_coins -` (space (stream_space (pmf_of_set UNIV))) \<inter> space \<B>)"
     by (subst B_eq_distr) (intro emeasure_distr from_coins_measurable sets.top)
@@ -625,7 +625,7 @@ qed
 lemma cshift_measurable: "cshift x \<in> \<B> \<rightarrow>\<^sub>M \<B>"
 proof -
   have "(to_coins \<circ> shift x \<circ> from_coins) \<in> \<B> \<rightarrow>\<^sub>M \<B>"
-    by (intro measurable_comp[OF from_coins_measurable] measurable_comp[OF _ to_coins_measurable] 
+    by (intro measurable_comp[OF from_coins_measurable] measurable_comp[OF _ to_coins_measurable]
         shift_measurable) auto
   thus ?thesis
     unfolding cshift_def by (simp add:comp_def)
@@ -634,7 +634,7 @@ qed
 lemma cdrop_measurable: "cdrop x \<in> \<B> \<rightarrow>\<^sub>M \<B>"
 proof -
   have "(to_coins \<circ> sdrop x \<circ> from_coins) \<in> \<B> \<rightarrow>\<^sub>M \<B>"
-    by (intro measurable_comp[OF from_coins_measurable] measurable_comp[OF _ to_coins_measurable] 
+    by (intro measurable_comp[OF from_coins_measurable] measurable_comp[OF _ to_coins_measurable]
         shift_measurable) auto
   thus ?thesis
     unfolding cdrop_def by (simp add:comp_def)
@@ -659,11 +659,11 @@ proof -
   have "(\<lambda>(x, y). cshift (ctake n x) y) = to_coins \<circ> (?f \<circ> ?g)"
     by (simp add:comp_def cshift_def ctake_def case_prod_beta')
   also have "... \<in> \<B> \<Otimes>\<^sub>M \<B> \<rightarrow>\<^sub>M \<B>"
-    by (intro measurable_comp[OF _ to_coins_measurable] measurable_comp[where N="(?M \<Otimes>\<^sub>M ?M)"] 
-        map_prod_measurable from_coins_measurable prob_space.branch_stream_space(1) 
+    by (intro measurable_comp[OF _ to_coins_measurable] measurable_comp[where N="(?M \<Otimes>\<^sub>M ?M)"]
+        map_prod_measurable from_coins_measurable prob_space.branch_stream_space(1)
         prob_space_measure_pmf)
   finally show "(\<lambda>(x, y). cshift (ctake n x) y) \<in> \<B> \<Otimes>\<^sub>M \<B> \<rightarrow>\<^sub>M \<B>"
-    by simp 
+    by simp
 
   have "distr (\<B> \<Otimes>\<^sub>M \<B>) (?M \<Otimes>\<^sub>M ?M) ?g = (distr \<B> ?M from_coins \<Otimes>\<^sub>M distr \<B> ?M from_coins)"
     unfolding map_prod_def using prob_space_measure_pmf
@@ -671,13 +671,13 @@ proof -
         prob_space_imp_sigma_finite prob_space.prob_space_stream_space simp:B_eq_distr[symmetric])
   also have "... = ?M \<Otimes>\<^sub>M ?M"
     unfolding B_eq_distr[symmetric] by simp
-  finally have 0: "distr (\<B> \<Otimes>\<^sub>M \<B>) (?M \<Otimes>\<^sub>M ?M) ?g = (?M \<Otimes>\<^sub>M ?M)" 
+  finally have 0: "distr (\<B> \<Otimes>\<^sub>M \<B>) (?M \<Otimes>\<^sub>M ?M) ?g = (?M \<Otimes>\<^sub>M ?M)"
     by simp
 
   have "?L = distr (\<B> \<Otimes>\<^sub>M \<B>) \<B> (to_coins \<circ> ?f \<circ> ?g)"
     unfolding cshift_def ctake_def by (simp add:comp_def map_prod_def case_prod_beta')
   also have "... = distr (distr (\<B> \<Otimes>\<^sub>M \<B>) (?M \<Otimes>\<^sub>M ?M) ?g) \<B> (to_coins \<circ> ?f)"
-    by (intro distr_distr[symmetric] map_prod_measurable from_coins_measurable 
+    by (intro distr_distr[symmetric] map_prod_measurable from_coins_measurable
         measurable_comp[OF _ to_coins_measurable] prob_space_measure_pmf) simp
   also have "... = distr (?M \<Otimes>\<^sub>M ?M) \<B> (to_coins \<circ> ?f)"
     unfolding 0 by simp
@@ -697,15 +697,15 @@ definition from_coins_t :: "coin_stream \<Rightarrow> (nat \<Rightarrow> bool di
 definition to_coins_t :: "(nat \<Rightarrow> bool discrete) \<Rightarrow> coin_stream"
   where "to_coins_t = to_coins \<circ> smap of_discrete \<circ> to_stream"
 
-lemma from_to_coins_t: 
+lemma from_to_coins_t:
   "from_coins_t (to_coins_t x) = x"
   unfolding to_coins_t_def from_coins_t_def
   by (intro ext) (simp add:snth_to_stream from_to_coins of_discrete_inverse)
 
-lemma to_from_coins_t: 
+lemma to_from_coins_t:
   "to_coins_t (from_coins_t x) = x"
-  unfolding to_coins_t_def from_coins_t_def 
-  by (simp add:to_stream_snth to_from_coins comp_def discrete_inverse 
+  unfolding to_coins_t_def from_coins_t_def
+  by (simp add:to_stream_snth to_from_coins comp_def discrete_inverse
       stream.map_comp stream.map_ident)
 
 lemma bij_to_coins_t: "bij to_coins_t"
@@ -726,13 +726,13 @@ instance proof
     using that unfolding open_coin_stream_def image_Int[OF bij_is_inj[OF bij_from_coins_t]]
     by auto
   show "open (\<Union> K)" if "\<forall>S \<in> K. open S" for K :: "coin_stream set set"
-    using that unfolding open_coin_stream_def image_Union 
-    by auto 
+    using that unfolding open_coin_stream_def image_Union
+    by auto
 qed
 end
 
 definition coin_stream_basis
-  where "coin_stream_basis = (\<lambda>x. Collect (cprefix x)) ` UNIV" 
+  where "coin_stream_basis = (\<lambda>x. Collect (cprefix x)) ` UNIV"
 
 lemma image_collect_eq: "f ` {x. A (f x)} = {x. A x} \<inter> range f"
   by auto
@@ -740,34 +740,34 @@ lemma image_collect_eq: "f ` {x. A (f x)} = {x. A x} \<inter> range f"
 lemma coin_stream_basis: "topological_basis coin_stream_basis"
 proof -
   have "bij_betw (\<lambda>x. (!!) (smap discrete x)) UNIV UNIV"
-    by (intro bij_betwI[where g="smap of_discrete \<circ> to_stream"]) (simp_all add:to_stream_snth 
-        snth_to_stream stream.map_comp comp_def of_discrete_inverse discrete_inverse 
+    by (intro bij_betwI[where g="smap of_discrete \<circ> to_stream"]) (simp_all add:to_stream_snth
+        snth_to_stream stream.map_comp comp_def of_discrete_inverse discrete_inverse
         stream.map_ident)
   hence 3:"range (\<lambda>x. (!!) (smap discrete x)) = UNIV"
     using bij_is_surj by auto
 
-  obtain K :: "(nat \<Rightarrow> bool discrete) set set" where 
+  obtain K :: "(nat \<Rightarrow> bool discrete) set set" where
     K_countable: "countable K" and K_top_basis: "topological_basis K" and
     K_cylinder: "\<forall>k\<in>K. \<exists>X. (k = Pi\<^sub>E UNIV X) \<and> (\<forall>i. open (X i)) \<and> finite {i. X i \<noteq> UNIV}"
   using product_topology_countable_basis by auto
 
-  have from_coins_cprefix: "from_coins_t ` {xs. cprefix p xs} = 
+  have from_coins_cprefix: "from_coins_t ` {xs. cprefix p xs} =
     PiE UNIV (\<lambda>i. if i < length p then {discrete (p ! i)} else UNIV)" (is "?L = ?R") for p
   proof -
     have 2:"from_coins ` {xs. cprefix p xs} = {f. \<forall>i < length p. f !! i = p ! i}"
-      unfolding cprefix_iff cnth_def using bij_is_surj[OF bij_from_coins] 
-      by (subst image_collect_eq) auto 
+      unfolding cprefix_iff cnth_def using bij_is_surj[OF bij_from_coins]
+      by (subst image_collect_eq) auto
 
     have "from_coins_t`{xs. cprefix p xs} = (snth\<circ>smap discrete)`(from_coins ` {xs. cprefix p xs})"
       unfolding from_coins_t_def image_image by simp
     also have "... = (snth \<circ> smap discrete) ` {f. \<forall>i < length p. f !! i = p ! i}"
       unfolding 2 by simp
-    also have "... = (\<lambda>x. snth (smap discrete x)) ` 
+    also have "... = (\<lambda>x. snth (smap discrete x)) `
       {f. \<forall>i < length p. (smap discrete f) !! i = discrete (p ! i)}"
       by (simp add:discrete_inject)
     also have "... = {x. \<forall>i<length p. x i = discrete (p ! i)} \<inter> range (\<lambda>x. (!!) (smap discrete x))"
       by (intro image_collect_eq)
-    also have "... = {x. \<forall>i<length p. x i = discrete (p ! i)}" 
+    also have "... = {x. \<forall>i<length p. x i = discrete (p ! i)}"
       unfolding 3 by simp
     also have "... = PiE UNIV (\<lambda>i. if i < length p then {discrete (p ! i)} else UNIV)"
       unfolding PiE_def Pi_def by auto
@@ -779,8 +779,8 @@ proof -
   proof -
     obtain p where U_eq:"U = {xs. cprefix p xs}" using 0 unfolding coin_stream_basis_def by auto
     show ?thesis
-      unfolding open_coin_stream_def U_eq from_coins_cprefix 
-      by (intro open_PiE) (auto intro:open_discrete) 
+      unfolding open_coin_stream_def U_eq from_coins_cprefix
+      by (intro open_PiE) (auto intro:open_discrete)
   qed
   moreover have "\<exists>B\<in>coin_stream_basis. x \<in> B \<and> B \<subseteq> U" if "open U" "x \<in> U" for U x
   proof -
@@ -788,7 +788,7 @@ proof -
       using that unfolding open_coin_stream_def by auto
     then obtain B where B: "B \<in> K" "from_coins_t x \<in> B" "B \<subseteq> from_coins_t ` U"
       using topological_basisE[OF K_top_basis] by blast
-    obtain X where X: "B = Pi\<^sub>E UNIV X" and fin_X: "finite {i. X i \<noteq> UNIV}" 
+    obtain X where X: "B = Pi\<^sub>E UNIV X" and fin_X: "finite {i. X i \<noteq> UNIV}"
       using K_cylinder B(1) by auto
     define Z where "Z i = (X i \<noteq> UNIV)" for i
     define n where "n = (if {i. X i \<noteq> UNIV} \<noteq> {} then Suc (Max {i. X i \<noteq> UNIV}) else 0)"
@@ -817,7 +817,7 @@ proof -
     ultimately have "from_coins_t ` R \<subseteq> from_coins_t ` U"
       by simp
     hence "R \<subseteq> U"
-      using bij_is_inj[OF bij_from_coins_t] 
+      using bij_is_inj[OF bij_from_coins_t]
       by (simp add: inj_image_eq_iff subset_image_iff)
     moreover have "R \<in> coin_stream_basis" "x \<in> R"
       unfolding R_def coin_stream_basis_def by (auto simp:cprefix_def)
@@ -834,7 +834,7 @@ lemma coin_steam_open: "open {xs. cprefix x xs}"
 instance coin_stream :: second_countable_topology
 proof
   show "\<exists>(B :: coin_stream set set). countable B \<and> open = generate_topology B"
-    by (intro exI[where x="coin_stream_basis"] topological_basis_imp_subbasis conjI 
+    by (intro exI[where x="coin_stream_basis"] topological_basis_imp_subbasis conjI
         coin_stream_basis) (simp add:coin_stream_basis_def)
 qed
 
@@ -865,7 +865,7 @@ instance proof
     also have "... \<longleftrightarrow> (\<forall>x\<in>U. \<exists>e>0. \<forall>y. dist (from_coins_t x) y < e \<longrightarrow> y \<in> from_coins_t ` U)"
       unfolding fun_open_ball_aux by auto
     also have "... \<longleftrightarrow> (\<forall>x\<in>U. \<exists>e>0. \<forall>y \<in> to_coins_t ` UNIV. dist x y < e \<longrightarrow> y \<in> U)"
-      unfolding dist_coin_stream_def by (intro ball_cong refl ex_cong) 
+      unfolding dist_coin_stream_def by (intro ball_cong refl ex_cong)
        (simp add: from_to_coins_t in_from_coins_iff)
     also have "... \<longleftrightarrow> (\<forall>x\<in>U. \<exists>e>0. \<forall>y. dist x y < e \<longrightarrow> y \<in> U)"
       using bij_is_surj[OF bij_to_coins_t] by simp
@@ -910,7 +910,7 @@ proof
 qed
 
 lemma at_least_borelI:
-  assumes "topological_basis K" 
+  assumes "topological_basis K"
   assumes "countable K"
   assumes "K \<subseteq> sets M"
   assumes "open U"
@@ -950,7 +950,7 @@ proof -
   have "{xs. cprefix x xs} \<in> sets \<B>" for x
   proof (cases "x \<noteq> []")
     case True
-    have "{xs. cprefix x xs} = (\<Inter>i < length x. {xs. cnth xs i = x ! i})" 
+    have "{xs. cprefix x xs} = (\<Inter>i < length x. {xs. cnth xs i = x ! i})"
       unfolding cprefix_iff by auto
     also have "... \<in> sets \<B>"
       using cnth_sets True
@@ -970,7 +970,7 @@ proof -
     using at_least_borelI[OF coin_stream_basis 0 1 assms] by simp
 qed
 
-text \<open>This is the upper topology on @{typ "'a option"} with the natural partial order on 
+text \<open>This is the upper topology on @{typ "'a option"} with the natural partial order on
 @{typ "'a option"}.\<close>
 
 definition option_ud :: "'a option topology"
@@ -992,7 +992,7 @@ proof -
   thus ?thesis by auto
 qed
 
-lemma contionuos_into_option_udI: 
+lemma contionuos_into_option_udI:
   assumes "\<And>x. openin X (f -` {Some x} \<inter> topspace X)"
   shows "continuous_map X option_ud f"
 proof -
@@ -1010,7 +1010,7 @@ proof -
       by (intro image_cong refl) (metis option.exhaust_sel)
     hence "U = Some ` V" by simp
     hence "{x \<in> topspace X. f x \<in> U} = (\<Union>v \<in> V. f -` {Some v} \<inter> topspace X)" by auto
-    moreover have "openin X (\<Union>v \<in> V. f -` {Some v} \<inter> topspace X)" 
+    moreover have "openin X (\<Union>v \<in> V. f -` {Some v} \<inter> topspace X)"
       using assms by (intro openin_Union) auto
     ultimately show ?thesis by auto
   qed
